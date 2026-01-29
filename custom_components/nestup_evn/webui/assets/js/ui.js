@@ -21,6 +21,51 @@ class UIManager {
             // Load saved theme
             this.loadSavedTheme();
         }
+
+        // Mobile-specific touch optimizations
+        this.setupMobileTouchHandlers();
+    }
+
+    // Setup mobile touch handlers for better responsiveness
+    setupMobileTouchHandlers() {
+        // Detect if mobile device
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        if (isMobile) {
+            // Add touch-action to prevent double-tap zoom on buttons
+            document.querySelectorAll('.btn, select, input').forEach(el => {
+                el.style.touchAction = 'manipulation';
+            });
+
+            // Improve select element interaction on mobile
+            document.querySelectorAll('select').forEach(select => {
+                select.addEventListener('touchstart', function () {
+                    this.style.transform = 'scale(0.98)';
+                }, { passive: true });
+
+                select.addEventListener('touchend', function () {
+                    this.style.transform = 'scale(1)';
+                }, { passive: true });
+            });
+
+            // Add visual feedback for card taps
+            document.addEventListener('touchstart', (e) => {
+                if (e.target.closest('.card, .summary-month-card')) {
+                    const card = e.target.closest('.card, .summary-month-card');
+                    card.style.transition = 'transform 0.1s';
+                    card.style.transform = 'scale(0.98)';
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchend', (e) => {
+                if (e.target.closest('.card, .summary-month-card')) {
+                    const card = e.target.closest('.card, .summary-month-card');
+                    setTimeout(() => {
+                        card.style.transform = 'scale(1)';
+                    }, 100);
+                }
+            }, { passive: true });
+        }
     }
 
     // Tạo ripple effect
@@ -28,21 +73,21 @@ class UIManager {
         const btn = e.target;
         const circle = document.createElement('span');
         circle.className = 'ripple';
-        
+
         const rect = btn.getBoundingClientRect();
         circle.style.left = (e.clientX - rect.left) + 'px';
         circle.style.top = (e.clientY - rect.top) + 'px';
         circle.style.width = circle.style.height = Math.max(rect.width, rect.height) + 'px';
-        
+
         btn.appendChild(circle);
         setTimeout(() => circle.remove(), 600);
     }    // Change theme function
     changeTheme(themeName) {
         // Remove all existing theme classes
         const themes = [
-            'dark-gradient', 'cyberpunk', 'neon-dreams', 'aurora-borealis', 
-            'synthwave', 'glassmorphism', 'neubrutalism', 'matrix-rain', 
-            'sunset-vibes', 'ocean-depth', 'midnight-purple', 'golden-hour', 
+            'dark-gradient', 'cyberpunk', 'neon-dreams', 'aurora-borealis',
+            'synthwave', 'glassmorphism', 'neubrutalism', 'matrix-rain',
+            'sunset-vibes', 'ocean-depth', 'midnight-purple', 'golden-hour',
             'forest-mist', 'cosmic-dust', 'tokyo-night', 'minimal-light'
         ];
         themes.forEach(theme => {
@@ -70,9 +115,9 @@ class UIManager {
         if (window.chartManager) {
             window.chartManager.updateChartsTheme();
         }
-        
+
     }
-      // Apply theme to form elements and containers
+    // Apply theme to form elements and containers
     applyThemeToFormElements(themeName) {
         // Apply to form elements
         const formElements = document.querySelectorAll('select, input[type="date"]');
@@ -81,14 +126,14 @@ class UIManager {
             element.className = element.className.replace(/theme-\w+/g, '');
             // Add new theme class if needed (handled by CSS data-theme attribute)
         });
-        
+
         // Apply to search results container
         const searchResultsContainer = document.getElementById('searchResult');
         if (searchResultsContainer) {
             searchResultsContainer.style.transition = 'background-color 0.5s, border-color 0.5s, box-shadow 0.5s';
         }
     }
-    
+
     // Load saved theme
     loadSavedTheme() {
         let savedTheme = 'dark-gradient';
@@ -121,7 +166,7 @@ class UIManager {
             }
         }
     }
-    
+
     // Get theme display name
     getThemeDisplayName(themeName) {
         const themeNames = {
@@ -149,12 +194,12 @@ class UIManager {
     renderSummaryContainer(trendData) {
         const summaryContainer = document.getElementById('summaryContainer');
         summaryContainer.innerHTML = '';
-        
+
         trendData.forEach((data, index) => {
             const summaryDiv = document.createElement('div');
             summaryDiv.className = 'summary-month-card';
             summaryDiv.id = `summary-month-${index}`;
-            
+
             // Determine trend color and symbol
             let trendSymbol = '—';
             let trendClass = 'neutral';
@@ -164,8 +209,8 @@ class UIManager {
             } else if (data.trend === 'down') {
                 trendSymbol = '▼';
                 trendClass = 'negative';
-            }            summaryDiv.innerHTML = `
-                <h4>${data.isCurrentPeriod ? 'Kỳ này' : `Tháng ${data.monthNum.toString().padStart(2, '0')}`}</h4>
+            } summaryDiv.innerHTML = `
+                <h4>${data.isCurrentPeriod ? 'Kỳ này' : `Tháng ${data.monthYear}`}</h4>
                 <div class="summary-stat-inline">
                     <i class="fas fa-bolt text-yellow-400"></i>
                     <span>Tổng:</span>
@@ -195,67 +240,67 @@ class UIManager {
     }
 
     // Update summary numbers with animation
-	updateSummaryNumbers(summary) {
-		const totalCostEl = document.getElementById('totalCost');
-		const avgMonthlyCostEl = document.getElementById('avgMonthlyCost');
-		const avgMonthlyConsumptionEl = document.getElementById('avgMonthlyConsumption');
-		const avgDailyConsumptionEl = document.getElementById('avgDailyConsumption');
+    updateSummaryNumbers(summary) {
+        const totalCostEl = document.getElementById('totalCost');
+        const avgMonthlyCostEl = document.getElementById('avgMonthlyCost');
+        const avgMonthlyConsumptionEl = document.getElementById('avgMonthlyConsumption');
+        const avgDailyConsumptionEl = document.getElementById('avgDailyConsumption');
 
-		if (!totalCostEl) return;
+        if (!totalCostEl) return;
 
-		totalCostEl.innerHTML = '';
+        totalCostEl.innerHTML = '';
 
-		const costValueSpan = document.createElement('span');
-		costValueSpan.className = 'summary-cost-value';
-		totalCostEl.appendChild(costValueSpan);
+        const costValueSpan = document.createElement('span');
+        costValueSpan.className = 'summary-cost-value';
+        totalCostEl.appendChild(costValueSpan);
 
-		this.animateCounterUp(costValueSpan, summary.totalCost, 0);
+        this.animateCounterUp(costValueSpan, summary.totalCost, 0);
 
-		if (summary.estimated) {
-			const badge = document.createElement('span');
-			badge.className = 'ml-2 text-xs text-yellow-400';
-			badge.textContent = '(tạm tính)';
-			totalCostEl.appendChild(badge);
-		}
+        if (summary.estimated) {
+            const badge = document.createElement('span');
+            badge.className = 'ml-2 text-xs text-yellow-400';
+            badge.textContent = '(tạm tính)';
+            totalCostEl.appendChild(badge);
+        }
 
-		this.animateCounterUp(avgMonthlyCostEl, summary.avgMonthlyCost, 0);
-		this.animateCounterUp(avgMonthlyConsumptionEl, summary.avgMonthlyConsumption, 2);
-		this.animateCounterUp(avgDailyConsumptionEl, summary.avgDailyConsumption, 2);
-	}
+        this.animateCounterUp(avgMonthlyCostEl, summary.avgMonthlyCost, 0);
+        this.animateCounterUp(avgMonthlyConsumptionEl, summary.avgMonthlyConsumption, 2);
+        this.animateCounterUp(avgDailyConsumptionEl, summary.avgDailyConsumption, 2);
+    }
 
     // Counter up animation
     animateCounterUp(element, value, decimals = 0) {
         if (!element) return;
-        
+
         const duration = 900;
         const start = parseFloat(element.textContent.replace(/,/g, '')) || 0;
         const end = value;
         const startTime = performance.now();
-        
+
         if (start === end) return;
-        
+
         const animate = (now) => {
             const elapsed = now - startTime;
             const progress = Math.min(elapsed / duration, 1);
             const current = start + (end - start) * progress;
-            
+
             if (decimals > 0) {
                 element.textContent = current.toLocaleString(undefined, { maximumFractionDigits: decimals });
             } else {
                 element.textContent = Math.round(current).toLocaleString();
             }
-            
+
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
-                element.textContent = decimals > 0 ? 
-                    end.toLocaleString(undefined, { maximumFractionDigits: decimals }) : 
+                element.textContent = decimals > 0 ?
+                    end.toLocaleString(undefined, { maximumFractionDigits: decimals }) :
                     Math.round(end).toLocaleString();
                 element.classList.add('changed');
                 setTimeout(() => element.classList.remove('changed'), 700);
             }
         };
-        
+
         requestAnimationFrame(animate);
     }
 
@@ -263,24 +308,44 @@ class UIManager {
     populateMonthSelect(uniqueMonths) {
         const monthSelect = document.getElementById('monthSelect');
         monthSelect.innerHTML = '';
-        
+
         uniqueMonths.forEach(monthYear => {
             const option = document.createElement('option');
             option.value = monthYear;
             option.textContent = `Tháng ${monthYear}`;
             monthSelect.appendChild(option);
         });
-        
+
         if (uniqueMonths.length > 0) {
             monthSelect.value = uniqueMonths[0];
         }
+    }
+
+    // Populate year select
+    populateYearSelect(years) {
+        const yearSelect = document.getElementById('yearSelect');
+        if (!yearSelect) return;
+
+        const currentValue = yearSelect.value || 'all';
+        yearSelect.innerHTML = '<option value="all">Tất cả các năm</option>';
+
+        years.forEach(year => {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = `Năm ${year}`;
+            yearSelect.appendChild(option);
+        });
+
+        // Restore value if still exists
+        const exists = Array.from(yearSelect.options).some(opt => opt.value === currentValue);
+        yearSelect.value = exists ? currentValue : 'all';
     }
 
     // Populate account select
     populateAccountSelect(accounts) {
         const accountSelect = document.getElementById('accountSelect');
         accountSelect.innerHTML = '';
-        
+
         accounts.forEach((account, index) => {
             const option = document.createElement('option');
             option.value = account.userevn;
@@ -294,16 +359,16 @@ class UIManager {
     updateAccountAvatar(account) {
         const avatar = document.getElementById('accountAvatar');
         if (!avatar) return;
-        
+
         if (!account) {
             avatar.innerHTML = '<i class="fas fa-user"></i>';
             return;
         }
-        
+
         // Lấy ký tự đầu hoặc số cuối tài khoản làm avatar
         let display = account[0];
-        if (/\d/.test(account[account.length-1])) {
-            display = account[account.length-1];
+        if (/\d/.test(account[account.length - 1])) {
+            display = account[account.length - 1];
         }
         avatar.textContent = display;
     }    // Render search results - simplified as we now use the modal dialog directly
@@ -323,13 +388,13 @@ class UIManager {
             const element = document.getElementById(id);
             if (element) element.textContent = '';
         });
-        
+
         const monthSelect = document.getElementById('monthSelect');
         if (monthSelect) monthSelect.innerHTML = '';
-        
+
         const searchResult = document.getElementById('searchResult');
         if (searchResult) searchResult.innerHTML = '';
-        
+
         const summaryContainer = document.getElementById('summaryContainer');
         if (summaryContainer) summaryContainer.innerHTML = '';
     }
@@ -352,18 +417,18 @@ class UIManager {
         const c1 = document.getElementById('bg-c1');
         const c2 = document.getElementById('bg-c2');
         const e1 = document.getElementById('bg-e1');
-        
+
         if (!c1 || !c2 || !e1) return;
-        
+
         let t = 0;
         const loop = () => {
             t += 0.008;
             c1.setAttribute('cx', 400 + Math.sin(t) * 60);
-            c1.setAttribute('cy', 300 + Math.cos(t/2) * 40);
-            c2.setAttribute('cx', 1600 + Math.cos(t/1.5) * 80);
-            c2.setAttribute('cy', 800 + Math.sin(t/1.2) * 60);
-            e1.setAttribute('rx', 120 + Math.sin(t/1.3) * 18);
-            e1.setAttribute('ry', 60 + Math.cos(t/1.7) * 10);
+            c1.setAttribute('cy', 300 + Math.cos(t / 2) * 40);
+            c2.setAttribute('cx', 1600 + Math.cos(t / 1.5) * 80);
+            c2.setAttribute('cy', 800 + Math.sin(t / 1.2) * 60);
+            e1.setAttribute('rx', 120 + Math.sin(t / 1.3) * 18);
+            e1.setAttribute('ry', 60 + Math.cos(t / 1.7) * 10);
             requestAnimationFrame(loop);
         };
         loop();
@@ -380,7 +445,7 @@ class UIManager {
     // Hiển thị modal cấu hình chu kỳ thanh toán
     showBillingCycleConfig(currentCycle, onSave) {
         console.log('Creating billing cycle modal...');
-          const modal = document.createElement('div');
+        const modal = document.createElement('div');
         modal.className = 'billing-cycle-modal';
         modal.innerHTML = `
             <div class="modal-content">
@@ -412,9 +477,9 @@ class UIManager {
                                 <div class="start-day-input">
                                     <label for="startDay">Ngày bắt đầu chu kỳ:</label>
                                     <select id="startDay" ${currentCycle.type === 'calendar' ? 'disabled' : ''}>
-                                        ${Array.from({length: 28}, (_, i) => i + 1).map(day => 
-                                            `<option value="${day}" ${currentCycle.startDay === day ? 'selected' : ''}>${day}</option>`
-                                        ).join('')}
+                                        ${Array.from({ length: 28 }, (_, i) => i + 1).map(day =>
+            `<option value="${day}" ${currentCycle.startDay === day ? 'selected' : ''}>${day}</option>`
+        ).join('')}
                                     </select>
                                 </div>
                             </div>
@@ -434,15 +499,15 @@ class UIManager {
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(modal);
         console.log('Modal appended to body, modal visible?', modal.style.display !== 'none');
-        
+
         // Event listeners cho modal
         const cycleTypeInputs = modal.querySelectorAll('input[name="cycleType"]');
         const startDaySelect = modal.querySelector('#startDay');
         const exampleText = modal.querySelector('#exampleText');
-        
+
         cycleTypeInputs.forEach(input => {
             input.addEventListener('change', (e) => {
                 const isCustom = e.target.value === 'custom';
@@ -450,19 +515,19 @@ class UIManager {
                 exampleText.innerHTML = this.getBillingExampleText(e.target.value, parseInt(startDaySelect.value));
             });
         });
-        
+
         startDaySelect.addEventListener('change', (e) => {
             const cycleType = modal.querySelector('input[name="cycleType"]:checked').value;
             exampleText.innerHTML = this.getBillingExampleText(cycleType, parseInt(e.target.value));
         });
-          // Close modal when clicking outside
+        // Close modal when clicking outside
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 console.log('Closing modal - clicked outside');
                 modal.remove();
             }
         });
-        
+
         // Close modal with ESC key
         const handleEscKey = (e) => {
             if (e.key === 'Escape') {
@@ -472,41 +537,42 @@ class UIManager {
             }
         };
         document.addEventListener('keydown', handleEscKey);
-        
+
         // Save button
         modal.querySelector('#saveBillingCycle').addEventListener('click', () => {
             const cycleType = modal.querySelector('input[name="cycleType"]:checked').value;
             const startDay = parseInt(startDaySelect.value);
-            
+
             console.log('Saving billing cycle:', { cycleType, startDay });
-            
+
             onSave({
                 type: cycleType === 'calendar' ? 'calendar' : 'cycle',
                 startDay: cycleType === 'calendar' ? 1 : startDay
             });
-            
+
             modal.remove();
             document.removeEventListener('keydown', handleEscKey);
         });
-        
+
         console.log('Modal setup complete');
     }
-    
+
     // Tạo text ví dụ cho chu kỳ thanh toán
     getBillingExampleText(type, startDay) {
         const today = new Date();
         const currentMonth = today.getMonth() + 1;
         const currentYear = today.getFullYear();
-        
+
         if (type === 'calendar') {
             return `
                 <div class="example-item">
                     <strong>Tháng ${currentMonth}/${currentYear}:</strong> 01/${currentMonth}/${currentYear} - ${new Date(currentYear, currentMonth, 0).getDate()}/${currentMonth}/${currentYear}
                 </div>
-            `;        } else {
+            `;
+        } else {
             const startDate = new Date(currentYear, currentMonth - 1, startDay);
             const endDate = new Date(currentYear, currentMonth, startDay - 1);
-            
+
             return `
                 <div class="example-item">
                     <strong>Chu kỳ tháng ${currentMonth}/${currentYear}:</strong> 
@@ -516,9 +582,10 @@ class UIManager {
                 <div class="example-note">
                     <i class="fas fa-info-circle"></i> Chu kỳ thanh toán từ ngày ${startDay} tháng hiện tại đến ngày ${startDay - 1} tháng tiếp theo
                 </div>
-            `;}
+            `;
+        }
     }
-    
+
     // Hiển thị toast notification
     showToast(message, type = 'success') {
         // Remove existing toast if any
@@ -526,7 +593,7 @@ class UIManager {
         if (existingToast) {
             existingToast.remove();
         }
-        
+
         const toast = document.createElement('div');
         toast.className = `toast-notification toast-${type}`;
         toast.innerHTML = `
@@ -535,9 +602,9 @@ class UIManager {
                 <span>${message}</span>
             </div>
         `;
-        
+
         document.body.appendChild(toast);
-        
+
         // Auto remove after 3 seconds
         setTimeout(() => {
             toast.remove();
@@ -562,7 +629,7 @@ class UIManager {
         // Hiển thị mỗi ngày trong danh sách
         recentData.forEach(day => {
             const consumption = day["Điện tiêu thụ (kWh)"];
-            
+
             // Format date nicely
             const date = new Date(day.Ngày.split('-').reverse().join('-'));
             const formattedDate = date.toLocaleDateString('vi-VN', {
@@ -570,7 +637,7 @@ class UIManager {
                 month: '2-digit',
                 year: 'numeric'
             });
-            
+
             // Xác định class dựa trên mức tiêu thụ
             let consumptionClass, icon;
             if (consumption > 10) {
@@ -586,18 +653,18 @@ class UIManager {
                 consumptionClass = 'consumption-zero';
                 icon = '🕯️';
             }
-            
+
             const dayElement = document.createElement('div');
             dayElement.className = 'recent-day-item';
             dayElement.innerHTML = `
                 <span class="date"><span class="icon">${icon}</span>${formattedDate}</span>
                 <span class="consumption ${consumptionClass}">${consumption.toFixed(2)} kWh</span>
             `;
-            
+
             recentDaysContainer.appendChild(dayElement);
         });
     }
-    
+
     // Kiểm tra localStorage có khả dụng không
     isLocalStorageAvailable() {
         try {

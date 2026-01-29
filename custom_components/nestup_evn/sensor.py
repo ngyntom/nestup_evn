@@ -54,8 +54,9 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ):
     entry_config = hass.data[DOMAIN][entry.entry_id]
-    evn_api = nestup_evn.EVNAPI(hass, True)
+    evn_api = nestup_evn.EVNAPI(hass)
     evn_device = EVNDevice(entry_config, evn_api)
+    await evn_device.async_setup()
     await evn_device.async_create_coordinator(hass)
 
     entities = [
@@ -92,17 +93,19 @@ class EVNDevice:
             history_start_date=history_start_date,
         )
 
-    async def async_load_branches(self):
+    async def async_setup(self):
+        """Async setup of the device."""
         try:
-            file_path = os.path.join(
-                os.path.dirname(nestup_evn.__file__),
-                "evn_branches.json",
-            )
-            self._branches_data = await self.hass.async_add_executor_job(
-                nestup_evn.read_evn_branches_file, file_path
-            )
-        except Exception as ex:
-            _LOGGER.error("Load branch data failed: %s", ex)
+            await self._storage.async_load()
+            # We only save if we successfully loaded (or confirmed it doesn't exist)
+            _LOGGER.debug("EVNDevice: Storage setup complete for %s", self._customer_id)
+        except Exception as e:
+            _LOGGER.error("EVNDevice: Failed to initialize storage for %s: %s", self._customer_id, e)
+            # Fail the setup if we can't load history safely
+            raise ConfigEntryNotReady(f"Storage initialization failed: {e}")
+
+    async def _async_get_branch_info(self):
+        return await nestup_evn.get_evn_info(self.hass, self._customer_id)
 
     async def update(self) -> dict[str, Any]:
         data = await self._api.request_update(
@@ -118,19 +121,31 @@ class EVNDevice:
 
         self._data = data
         await self._storage.async_update_from_sensor_data(data)
-        await self._storage.async_sync_monthly_history(self._api)
-        self._storage.start_background_backfill(self._api)
+        
+        # Only sync monthly bills once a day to save resources
+        now = datetime.now()
+        last_monthly_sync = self._data.get("last_monthly_sync")
+        if not last_monthly_sync or (now - last_monthly_sync).total_seconds() > 86400:
+            await self._storage.async_sync_monthly_history(self._api, self._area_name, self._username, self._password)
+            self._data["last_monthly_sync"] = now
+
+        # Backfill runs in background, but only if not already done
+        if not self._storage.backfill_done:
+            self._storage.start_background_backfill(self._api, self._area_name, self._username, self._password)
+            
         return self._data
 
     async def _async_update(self):
+        if self._branches_data is None:
+            self._branches_data = await self._async_get_branch_info()
         return await self.update()
 
     async def async_create_coordinator(self, hass: HomeAssistant) -> None:
         if self._coordinator:
             return
 
-        await self.async_load_branches()
-        await self._storage.async_load()
+        if self._branches_data is None:
+            self._branches_data = await self._async_get_branch_info()
 
         coordinator = DataUpdateCoordinator(
             hass,
@@ -141,20 +156,10 @@ class EVNDevice:
         )
         self._coordinator = coordinator
         await coordinator.async_config_entry_first_refresh()
-        if not self._storage.data.get("meta", {}).get("backfill_done"):
-            self._storage.start_background_backfill(self._api)
 
     @property
     def coordinator(self):
         return self._coordinator
-
-    @property
-    def branch_info(self):
-        if self._branches_data is None:
-            return {"status": CONF_ERR_UNKNOWN}
-        return nestup_evn.get_evn_info_sync(
-            self._customer_id, self._branches_data
-        )
 
 class EVNSensor(CoordinatorEntity, SensorEntity):
     """EVN Sensor Instance."""
@@ -205,11 +210,12 @@ class EVNSensor(CoordinatorEntity, SensorEntity):
         """Return a device description for device registry."""
         hw_version = f"by {self._device._area_name['name']}"
 
-        evn_area = self._device.branch_info
-        if (evn_area["status"] == CONF_SUCCESS) and (
-            evn_area["evn_branch"] != "Unknown"
+        if self._device._branches_data and (
+            self._device._branches_data.get("status") == CONF_SUCCESS
+        ) and (
+            self._device._branches_data.get("evn_branch") != "Unknown"
         ):
-            hw_version = f"by {evn_area['evn_branch']}"
+            hw_version = f"by {self._device._branches_data['evn_branch']}"
 
         return DeviceInfo(
             name=self._device._name,

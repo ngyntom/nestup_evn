@@ -40,22 +40,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors: dict[str, str] = {}
         self._branches_data = None
 
-    async def _load_branches_data(self):
-        """Load EVN branches data asynchronously."""
-        try:
-            file_path = os.path.join(
-                os.path.dirname(nestup_evn.__file__),
-                "evn_branches.json",
-            )
-            self._branches_data = await self.hass.async_add_executor_job(
-                nestup_evn.read_evn_branches_file,
-                file_path,
-            )
-        except Exception as ex:
-            _LOGGER.error("Error loading branches data: %s", ex)
-            return None
-
-        return self._branches_data
+    async def _async_get_evn_info(self):
+        """Get EVN information with caching."""
+        return await nestup_evn.get_evn_info(self.hass, self._user_data[CONF_CUSTOMER_ID])
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -77,25 +64,19 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 except ValueError:
                     self._errors[CONF_HISTORY_START_DATE] = "invalid_date"
 
-            if not self._errors:
-                self._user_data.update(user_input)
+                if not self._errors:
+                    self._user_data.update(user_input)
+                    
+                    evn_info = await self._async_get_evn_info()
 
-                if self._branches_data is None:
-                    await self._load_branches_data()
+                    if evn_info.get("status") is not CONF_SUCCESS:
+                        self._errors["base"] = evn_info.get(
+                            "status", CONF_ERR_UNKNOWN
+                        )
+                    else:
+                        self._user_data[CONF_AREA] = evn_info["evn_area"]
 
-                evn_info = nestup_evn.get_evn_info_sync(
-                    self._user_data[CONF_CUSTOMER_ID],
-                    self._branches_data,
-                )
-
-                if evn_info.get("status") is not CONF_SUCCESS:
-                    self._errors["base"] = evn_info.get(
-                        "status", CONF_ERR_UNKNOWN
-                    )
-                else:
-                    self._user_data[CONF_AREA] = evn_info["evn_area"]
-
-                    self._api = nestup_evn.EVNAPI(self.hass, True)
+                        self._api = nestup_evn.EVNAPI(self.hass)
 
                     login_state = await self._api.login(
                         self._user_data[CONF_AREA],

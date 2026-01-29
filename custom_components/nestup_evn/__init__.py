@@ -28,6 +28,8 @@ from .views import (
     EVNOptionsView,
     EVNMonthlyDataView,
     EVNDailyDataView,
+    EVNPricingView,
+    EVNStatusView,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,7 +42,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up nestup_evn from a config entry."""
 
-    api = EVNAPI(hass, True)
+    api = EVNAPI(hass)
 
     try:
         await api.request_update(
@@ -64,6 +66,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.http.register_view(EVNOptionsView(hass))
         hass.http.register_view(EVNMonthlyDataView(hass))
         hass.http.register_view(EVNDailyDataView(hass))
+        hass.http.register_view(EVNPricingView(hass))
+        hass.http.register_view(EVNStatusView(hass))
 
         hass.data[DOMAIN]["api_registered"] = True
         _LOGGER.info("Registered EVN API endpoints and WebUI at %s", webui_path)

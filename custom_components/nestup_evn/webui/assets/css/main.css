@@ -14,9 +14,17 @@ body {
 }
 
 @keyframes gradientMove {
-    0% {background-position: 0% 50%;}
-    50% {background-position: 100% 50%;}
-    100% {background-position: 0% 50%;}
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 .light-mode {
@@ -39,7 +47,7 @@ body {
 
 .card .icon-animated {
     display: inline-block;
-    transition: transform 0.4s cubic-bezier(.4,2,.6,1), filter 0.3s;
+    transition: transform 0.4s cubic-bezier(.4, 2, .6, 1), filter 0.3s;
 }
 
 .card .icon-animated:hover {
@@ -56,18 +64,28 @@ body {
 }
 
 @keyframes iconSpin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes iconBounce {
-    0% { transform: translateY(0) scale(1); }
-    100% { transform: translateY(-8px) scale(1.12); }
+    0% {
+        transform: translateY(0) scale(1);
+    }
+
+    100% {
+        transform: translateY(-8px) scale(1.12);
+    }
 }
 
 /* Counter up effect */
 .counter-up {
-    transition: all 0.3s cubic-bezier(.4,0,.2,1);
+    transition: all 0.3s cubic-bezier(.4, 0, .2, 1);
     display: inline-block;
 }
 
@@ -76,9 +94,20 @@ body {
 }
 
 @keyframes counterFlash {
-    0% { background: rgba(233,97,171,0.3); transform: scale(1); }
-    50% { background: rgba(233,97,171,0.6); transform: scale(1.08); }
-    100% { background: transparent; transform: scale(1); }
+    0% {
+        background: rgba(233, 97, 171, 0.3);
+        transform: scale(1);
+    }
+
+    50% {
+        background: rgba(233, 97, 171, 0.6);
+        transform: scale(1.08);
+    }
+
+    100% {
+        background: transparent;
+        transform: scale(1);
+    }
 }
 
 /* Chart Containers */
@@ -89,17 +118,17 @@ body {
     margin: 5px 0;
     padding: 3px;
     border-radius: 6px;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.05);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     overflow: hidden;
 }
 
 .monthly-chart {
-    background: linear-gradient(145deg, rgba(147,112,219,0.08), rgba(233,97,171,0.08));
+    background: linear-gradient(145deg, rgba(147, 112, 219, 0.08), rgba(233, 97, 171, 0.08));
 }
 
 .daily-chart {
-    background: linear-gradient(145deg, rgba(46,204,113,0.08), rgba(52,152,219,0.08));
+    background: linear-gradient(145deg, rgba(46, 204, 113, 0.08), rgba(52, 152, 219, 0.08));
 }
 
 /* Content Layout */
@@ -113,7 +142,7 @@ h3 {
     color: #e961ab;
     margin-bottom: 8px;
     font-weight: 600;
-    text-shadow: 0 0 10px rgba(233,97,171,0.3);
+    text-shadow: 0 0 10px rgba(233, 97, 171, 0.3);
     font-size: 1rem;
 }
 
@@ -123,22 +152,49 @@ p {
 }
 
 /* Form Elements */
-select, input[type="date"] {
+select,
+input[type="date"] {
     background: rgba(45, 45, 68, 0.8);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: #e0e0e0;
     border-radius: 8px;
     transition: all 0.3s;
+    min-height: 40px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
 }
 
-select:focus, input[type="date"]:focus {
+/* Custom dropdown arrow for select */
+select {
+    background-image: url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23e0e0e0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3e%3cpolyline points="6 9 12 15 18 9"%3e%3c/polyline%3e%3c/svg%3e');
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 20px;
+    padding-right: 36px;
+}
+
+select:focus,
+input[type="date"]:focus {
     outline: none;
     border-color: #e961ab;
     box-shadow: 0 0 0 3px rgba(233, 97, 171, 0.2);
+    background-color: rgba(45, 45, 68, 0.95);
 }
 
-select:hover, input[type="date"]:hover {
+select:hover,
+input[type="date"]:hover {
     border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Active state for better touch feedback */
+select:active,
+input[type="date"]:active {
+    transform: scale(0.98);
+    background-color: rgba(45, 45, 68, 0.95);
 }
 
 /* Search Results */
@@ -196,7 +252,7 @@ select:hover, input[type="date"]:hover {
 #summaryContainer .card {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    transition: all 0.3s cubic-bezier(.4,0,.2,1);
+    transition: all 0.3s cubic-bezier(.4, 0, .2, 1);
     padding: 4px;
     border-radius: 6px;
     font-size: 0.75rem;
@@ -316,10 +372,11 @@ select:hover, input[type="date"]:hover {
 /* Responsive Button Layout */
 @media (max-width: 768px) {
     .btn {
-        min-height: 44px; /* Touch friendly */
+        min-height: 44px;
+        /* Touch friendly */
         font-size: 0.9rem;
     }
-    
+
     /* Đảm bảo buttons trong header hiển thị đúng */
     .flex.flex-col.md\\:flex-row .btn {
         width: 100%;
@@ -339,43 +396,71 @@ button.btn {
 @media (max-width: 768px) {
     body {
         padding: 5px;
+        /* Reduce animation complexity on mobile */
+        animation: none;
+        background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
     }
-    
+
     .content {
         width: 100%;
         margin: 0;
         padding: 0 5px;
     }
-    
+
+    /* Mobile-optimized form elements */
+    select,
+    input[type="date"] {
+        min-height: 44px !important;
+        font-size: 16px !important;
+        /* Prevents zoom on iOS */
+        padding: 10px 12px;
+        touch-action: manipulation;
+    }
+
+    select {
+        padding-right: 40px;
+        background-size: 24px;
+        background-position: right 10px center;
+    }
+
+    /* Ensure dropdowns are easily tappable */
+    select option {
+        padding: 12px;
+        font-size: 16px;
+    }
+
     .chart-container {
         height: 220px;
         margin: 5px 0;
+        /* Reduce backdrop blur on mobile for performance */
+        backdrop-filter: none;
     }
-    
-    .chart-container {
-        height: 220px;
-        margin: 5px 0;
-    }
-    
+
     .card {
         padding: 6px;
         margin-bottom: 6px;
+        /* Reduce backdrop blur on mobile */
+        backdrop-filter: blur(5px);
     }
-    
+
     h3 {
         font-size: 0.9rem;
         margin-bottom: 6px;
+        /* Reduce text shadow on mobile */
+        text-shadow: none;
     }
-    
+
     #summaryContainer {
         gap: 6px;
-    }    #summaryContainer .card {
+    }
+
+    #summaryContainer .card {
         padding: 5px;
         min-width: max-content;
         width: auto;
         overflow: visible;
     }
-    
+
     #summaryContainer .card .summary-stat {
         white-space: nowrap;
         overflow: visible;
@@ -383,11 +468,16 @@ button.btn {
         flex-shrink: 0;
         min-width: max-content;
     }
-    
+
     #summaryContainer .card .summary-stat span {
         flex-shrink: 0;
         white-space: nowrap;
         display: inline;
+    }
+
+    /* Improve touch feedback */
+    .card:active {
+        transform: scale(0.99);
     }
 }
 
@@ -396,21 +486,21 @@ button.btn {
     body {
         padding: 10px;
     }
-    
+
     .content {
         width: 100%;
         margin: 0;
         padding: 0 10px;
     }
-    
+
     .chart-container {
         height: 300px;
     }
-    
+
     .card {
         padding: 10px;
     }
-    
+
     h3 {
         font-size: 1.1rem;
     }
@@ -421,21 +511,21 @@ button.btn {
     body {
         padding: 12px;
     }
-    
+
     .content {
         width: 100%;
         margin: 0;
         padding: 0 12px;
     }
-    
+
     .chart-container {
         height: 300px;
     }
-    
+
     .card {
         padding: 10px;
     }
-    
+
     h3 {
         font-size: 1.1rem;
     }
@@ -446,13 +536,13 @@ button.btn {
     body {
         padding: 15px;
     }
-    
+
     .content {
         width: 100%;
         margin: 0;
         padding: 0 15px;
     }
-    
+
     .chart-container {
         height: 300px;
     }
@@ -617,14 +707,40 @@ button.btn {
         padding: 15px;
         max-width: calc(100vw - 20px);
         max-height: calc(100vh - 20px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
-    
+
     .modal-table {
         font-size: 12px;
     }
-    
+
     .modal-table th,
     .modal-table td {
         padding: 6px 8px;
+    }
+
+    /* Larger close button for mobile */
+    .modal-close {
+        font-size: 32px;
+        padding: 8px;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Better modal header spacing on mobile */
+    .modal-header {
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+    }
+
+    /* Prevent body scroll when modal is open */
+    body.modal-open {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
     }
 }

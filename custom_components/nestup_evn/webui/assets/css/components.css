@@ -5,7 +5,7 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: linear-gradient(135deg,#e961ab 40%,#6b46c1 100%);
+    background: linear-gradient(135deg, #e961ab 40%, #6b46c1 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -24,22 +24,27 @@
 /* Animated SVG Background */
 #svg-bg {
     position: fixed;
-    top: 0; 
-    left: 0; 
-    width: 100vw; 
+    top: 0;
+    left: 0;
+    width: 100vw;
     height: 100vh;
     z-index: 0;
     pointer-events: none;
     opacity: 0.18;
 }
 
-body, .content {
+body,
+.content {
     position: relative;
     z-index: 1;
 }
 
 /* Đảm bảo các thành phần chính nằm trên SVG */
-.content, .loader, .card, .account-avatar, #mainLoader {
+.content,
+.loader,
+.card,
+.account-avatar,
+#mainLoader {
     position: relative;
     z-index: 2;
 }
@@ -62,7 +67,7 @@ body, .content {
     font-weight: 500;
     animation: slideInRight 0.3s ease-out;
     max-width: 300px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .toast-success {
@@ -84,6 +89,7 @@ body, .content {
         transform: translateX(100%);
         opacity: 0;
     }
+
     to {
         transform: translateX(0);
         opacity: 1;
@@ -96,14 +102,15 @@ body, .content {
 }
 
 @media (min-width: 768px) {
-    #summaryBar { 
-        display: none !important; 
+    #summaryBar {
+        display: none !important;
     }
 }
 
 /* Data table style */
-#detailTable th, #detailTable td {
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+#detailTable th,
+#detailTable td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 #detailTable th {
@@ -136,7 +143,7 @@ body, .content {
 /* Statistics styling moved to #tableStats container */
 
 #detailTableContainer {
-    transition: max-height 0.4s cubic-bezier(.4,2,.6,1);
+    transition: max-height 0.4s cubic-bezier(.4, 2, .6, 1);
 }
 
 /* Filter/segment control responsive fix: always horizontal, scrollable on mobile */
@@ -174,59 +181,94 @@ body, .content {
 
 /* Mobile optimizations */
 @media (max-width: 640px) {
+
+    /* Ensure all buttons meet minimum touch target */
     .filter-segment .filter-btn {
-        font-size: 9px !important;
-        padding: 3px 6px !important;
+        font-size: 11px !important;
+        padding: 8px 10px !important;
+        min-height: 44px;
+        min-width: 60px;
     }
-    
+
     #toggleDetailTable {
-        font-size: 9px !important;
-        padding: 3px 6px !important;
+        font-size: 11px !important;
+        padding: 8px 10px !important;
         white-space: nowrap;
+        min-height: 44px;
     }
-      #billingCycleBtn {
-        font-size: 9px !important;
-        padding: 3px 6px !important;
+
+    #billingCycleBtn {
+        font-size: 11px !important;
+        padding: 8px 10px !important;
+        min-height: 44px;
     }
-    
+
     #toggleMode {
-        font-size: 9px !important;
-        padding: 3px 6px !important;
-    }    /* Make summary labels even smaller on mobile */
-    .summary-label {
-        font-size: 0.7rem !important; /* 11.2px trên mobile */
+        font-size: 11px !important;
+        padding: 8px 10px !important;
+        min-height: 44px;
     }
-    
+
+    /* Search button */
+    #searchBtn {
+        min-height: 44px !important;
+        font-size: 14px !important;
+        padding: 10px 16px !important;
+        touch-action: manipulation;
+    }
+
+    /* Make summary labels even smaller on mobile */
+    .summary-label {
+        font-size: 0.7rem !important;
+        /* 11.2px trên mobile */
+    }
+
     /* Make summary values smaller on mobile too */
     .summary-value {
-        font-size: 0.7rem !important; /* 11.2px trên mobile */
+        font-size: 0.7rem !important;
+        /* 11.2px trên mobile */
     }
-      /* Make summary units smaller on mobile too */
+
+    /* Make summary units smaller on mobile too */
     .summary-unit {
-        font-size: 0.7rem !important; /* 11.2px trên mobile */
+        font-size: 0.7rem !important;
+        /* 11.2px trên mobile */
     }
-    
+
     /* Mobile optimization for summary inline */
     .summary-stat-inline {
         font-size: 0.7rem !important;
         gap: 3px;
     }
-    
+
     .summary-stat-inline span {
         font-size: 0.7rem !important;
     }
-    
+
     .min-value i,
     .max-value i {
         font-size: 0.55rem !important;
     }
-    
+
     .space-y-1 .flex.items-center.justify-between.text-sm .flex.items-center.gap-1 span:last-child {
-        font-size: 0.7rem !important; /* 11.2px on mobile */
+        font-size: 0.7rem !important;
+        /* 11.2px on mobile */
     }
-    
+
     .space-y-1 .text-sm .flex .gap-1 span:not(.fas) {
         font-size: 0.7rem !important;
+    }
+
+    /* Improve tap targets for summary cards */
+    .summary-month-card {
+        min-height: 44px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: rgba(233, 97, 171, 0.2);
+    }
+
+    .summary-month-card:active {
+        transform: scale(0.98);
+        background: rgba(255, 255, 255, 0.12);
     }
 }
 
@@ -241,10 +283,11 @@ body, .content {
     .header-buttons-container {
         gap: 4px;
     }
-    
+
     .header-buttons-container button {
         flex: 1;
-        min-width: 0; /* Allow buttons to shrink */
+        min-width: 0;
+        /* Allow buttons to shrink */
         white-space: nowrap;
     }
 }
@@ -262,6 +305,8 @@ body, .content {
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .billing-cycle-modal .modal-content {
@@ -346,7 +391,7 @@ body, .content {
     display: none;
 }
 
-.billing-cycle-modal .cycle-option input[type="radio"]:checked + .option-content {
+.billing-cycle-modal .cycle-option input[type="radio"]:checked+.option-content {
     color: #e961ab;
 }
 
@@ -475,7 +520,7 @@ body.light-mode .cycle-option:has(input[type="radio"]:checked) {
     background: #f8f9ff;
 }
 
-body.light-mode .cycle-option input[type="radio"]:checked + .option-content {
+body.light-mode .cycle-option input[type="radio"]:checked+.option-content {
     color: #6b46c1;
 }
 
@@ -674,19 +719,24 @@ body.light-mode .modal-footer {
 
 /* Summary stats labels - make them smaller */
 .summary-label {
-    font-size: 0.75rem !important; /* 12px thay vì 14px */
+    font-size: 0.75rem !important;
+    /* 12px thay vì 14px */
 }
 
 /* Summary values (numbers) - make them same size as labels */
 .summary-value {
-    font-size: 0.75rem !important; /* 12px thay vì 14px */
-    font-weight: 600; /* Giữ bold để nổi bật */
+    font-size: 0.75rem !important;
+    /* 12px thay vì 14px */
+    font-weight: 600;
+    /* Giữ bold để nổi bật */
 }
 
 /* Summary units (VND, kWh) - make them smaller too */
 .summary-unit {
-    font-size: 0.75rem !important; /* 12px thay vì 14px */
-    opacity: 0.8; /* Làm mờ 1 chút để tạo hierarchy */
+    font-size: 0.75rem !important;
+    /* 12px thay vì 14px */
+    opacity: 0.8;
+    /* Làm mờ 1 chút để tạo hierarchy */
 }
 
 /* Target the exact spans containing the labels */
@@ -702,13 +752,14 @@ body.light-mode .modal-footer {
 /* Mobile optimization for summary labels */
 @media (max-width: 640px) {
     .summary-stats-label {
-        font-size: 0.65rem !important; /* 10.4px */
+        font-size: 0.65rem !important;
+        /* 10.4px */
     }
-    
+
     .space-y-1 .flex .text-sm span {
         font-size: 0.65rem !important;
     }
-    
+
     .space-y-1 .flex .text-sm .flex span {
         font-size: 0.65rem !important;
     }
@@ -759,8 +810,10 @@ body.light-mode .modal-footer {
 .min-value i,
 .max-value i {
     font-size: 0.6rem;
-    margin-left: 2px; /* Khoảng cách nhỏ giữa text "Min:" và icon */
-    margin-right: 1px; /* Khoảng cách nhỏ giữa icon và số */
+    margin-left: 2px;
+    /* Khoảng cách nhỏ giữa text "Min:" và icon */
+    margin-right: 1px;
+    /* Khoảng cách nhỏ giữa icon và số */
 }
 
 /* Mobile optimization for summary inline */
@@ -772,33 +825,34 @@ body.light-mode .modal-footer {
         flex-wrap: nowrap;
         overflow: hidden;
     }
-    
+
     .summary-stat-inline span {
         font-size: 0.7rem !important;
         white-space: nowrap;
         flex-shrink: 0;
     }
-    
+
     .summary-stat-inline strong {
         font-size: 0.7rem !important;
         white-space: nowrap;
         flex-shrink: 0;
     }
-    
+
     .summary-stat-inline i {
         font-size: 0.55rem !important;
         flex-shrink: 0;
     }
-    
+
     .min-value i,
     .max-value i {
         font-size: 0.55rem !important;
     }
-    
+
     .space-y-1 .flex.items-center.justify-between.text-sm .flex.items-center.gap-1 span:last-child {
-        font-size: 0.7rem !important; /* 11.2px on mobile */
+        font-size: 0.7rem !important;
+        /* 11.2px on mobile */
     }
-    
+
     .space-y-1 .text-sm .flex .gap-1 span:not(.fas) {
         font-size: 0.7rem !important;
     }
@@ -838,14 +892,14 @@ body.light-mode .modal-footer {
         width: auto;
         overflow: visible;
     }
-    
+
     #summaryContainer .summary-month-card .summary-stat-inline {
         min-width: max-content;
         width: auto;
         font-size: 0.65rem !important;
         gap: 2px;
     }
-    
+
     #summaryContainer .summary-month-card .summary-stat-inline span,
     #summaryContainer .summary-month-card .summary-stat-inline strong {
         font-size: 0.65rem !important;
@@ -895,39 +949,47 @@ body.light-mode .modal-footer {
 /* Responsive design for statistics */
 @media (max-width: 768px) {
     #tableStats .grid {
-        grid-template-columns: 1fr 1fr 1fr; /* 3 cột ngang trên mobile */
-        gap: 4px; /* Giảm khoảng cách */
+        grid-template-columns: 1fr 1fr 1fr;
+        /* 3 cột ngang trên mobile */
+        gap: 4px;
+        /* Giảm khoảng cách */
     }
-    
+
     #tableStats {
-        font-size: 0.65rem; /* Font nhỏ hơn */
-        padding: 6px; /* Padding nhỏ hơn */
+        font-size: 0.65rem;
+        /* Font nhỏ hơn */
+        padding: 6px;
+        /* Padding nhỏ hơn */
     }
-    
+
     #tableStats h4 {
-        font-size: 0.7rem; /* Header nhỏ hơn */
-        margin-bottom: 4px; /* Margin nhỏ hơn */
+        font-size: 0.7rem;
+        /* Header nhỏ hơn */
+        margin-bottom: 4px;
+        /* Margin nhỏ hơn */
     }
-    
-    #tableStats .space-y-1 > div {
-        margin-bottom: 1px; /* Khoảng cách giữa các dòng nhỏ hơn */
+
+    #tableStats .space-y-1>div {
+        margin-bottom: 1px;
+        /* Khoảng cách giữa các dòng nhỏ hơn */
     }
-    
+
     /* Padding cho các card stats trên mobile */
     #tableStats .bg-blue-900,
     #tableStats .bg-green-900,
     #tableStats .bg-red-900 {
-        padding: 8px; /* Padding nhỏ hơn cho mobile */
+        padding: 8px;
+        /* Padding nhỏ hơn cho mobile */
     }
-    
+
     /* Icon nhỏ hơn trên mobile */
     #tableStats h4 i {
         font-size: 0.6rem;
         margin-right: 4px;
     }
-    
+
     /* Text overflow và wrap cho mobile */
-    #tableStats .space-y-1 > div {
+    #tableStats .space-y-1>div {
         overflow-wrap: break-word;
         word-break: break-all;
     }
@@ -936,33 +998,41 @@ body.light-mode .modal-footer {
 /* Responsive design for very small screens (small mobile) */
 @media (max-width: 480px) {
     #tableStats .grid {
-        grid-template-columns: 1fr 1fr 1fr; /* Vẫn giữ 3 cột */
-        gap: 2px; /* Giảm gap còn 2px */
+        grid-template-columns: 1fr 1fr 1fr;
+        /* Vẫn giữ 3 cột */
+        gap: 2px;
+        /* Giảm gap còn 2px */
     }
-    
+
     #tableStats {
-        font-size: 0.6rem; /* Font còn nhỏ hơn */
-        padding: 4px; /* Padding còn nhỏ hơn */
+        font-size: 0.6rem;
+        /* Font còn nhỏ hơn */
+        padding: 4px;
+        /* Padding còn nhỏ hơn */
     }
-    
+
     #tableStats h4 {
-        font-size: 0.65rem; /* Header còn nhỏ hơn */
-        margin-bottom: 2px; /* Margin rất nhỏ */
+        font-size: 0.65rem;
+        /* Header còn nhỏ hơn */
+        margin-bottom: 2px;
+        /* Margin rất nhỏ */
     }
-    
+
     #tableStats .bg-blue-900,
     #tableStats .bg-green-900,
     #tableStats .bg-red-900 {
-        padding: 6px; /* Padding rất nhỏ */
+        padding: 6px;
+        /* Padding rất nhỏ */
     }
-    
+
     #tableStats h4 i {
-        font-size: 0.55rem; /* Icon rất nhỏ */
+        font-size: 0.55rem;
+        /* Icon rất nhỏ */
         margin-right: 2px;
     }
-    
+
     /* Giấu một số text dài trên mobile nhỏ */
-    #tableStats .space-y-1 > div strong {
+    #tableStats .space-y-1>div strong {
         font-size: 0.55rem;
     }
 }
@@ -1122,28 +1192,28 @@ body.light-mode .modal-footer {
         width: 95%;
         max-height: 95vh;
     }
-    
+
     .modal-header {
         padding: 12px 16px;
     }
-    
+
     .modal-title {
         font-size: 1.1rem;
     }
-    
+
     .modal-content .overflow-x-auto {
         padding: 0 16px 16px 16px;
     }
-    
+
     .modal-table {
         font-size: 0.75rem;
     }
-    
+
     .modal-table thead th,
     .modal-table tbody td {
         padding: 8px 4px;
     }
-    
+
     #tableStats {
         font-size: 0.75rem;
         padding: 8px;
@@ -1459,7 +1529,13 @@ body.light-mode .modal-footer {
 }
 
 /* Smooth transitions for all elements */
-.card, .btn, select, input, table, th, td {
+.card,
+.btn,
+select,
+input,
+table,
+th,
+td {
     transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
@@ -1496,7 +1572,7 @@ body.light-mode .modal-footer {
     height: 100%;
     pointer-events: none;
     z-index: -1;
-    background: 
+    background:
         linear-gradient(90deg, transparent 98%, rgba(0, 255, 0, 0.03) 100%),
         linear-gradient(transparent 98%, rgba(0, 255, 0, 0.03) 100%);
     background-size: 3px 3px;
@@ -1504,8 +1580,13 @@ body.light-mode .modal-footer {
 }
 
 @keyframes matrix-scroll {
-    0% { transform: translateY(-100%); }
-    100% { transform: translateY(100%); }
+    0% {
+        transform: translateY(-100%);
+    }
+
+    100% {
+        transform: translateY(100%);
+    }
 }
 
 /* Cyberpunk Glitch Effect */
@@ -1523,14 +1604,19 @@ body.light-mode .modal-footer {
 }
 
 @keyframes cyberpunk-glitch {
-    0%, 90%, 100% {
+
+    0%,
+    90%,
+    100% {
         transform: translate(0);
         opacity: 0;
     }
+
     95% {
         transform: translate(2px, 0);
         opacity: 1;
     }
+
     97% {
         transform: translate(-2px, 0);
         opacity: 1;
@@ -1546,6 +1632,7 @@ body.light-mode .modal-footer {
     from {
         box-shadow: 0 0 20px rgba(255, 20, 147, 0.3);
     }
+
     to {
         box-shadow: 0 0 30px rgba(255, 20, 147, 0.6);
     }
@@ -1558,9 +1645,12 @@ body.light-mode .modal-footer {
 }
 
 @keyframes aurora-wave {
-    0%, 100% {
+
+    0%,
+    100% {
         background-position: 0% 50%;
     }
+
     50% {
         background-position: 100% 50%;
     }
@@ -1576,7 +1666,7 @@ body.light-mode .modal-footer {
     height: 100%;
     pointer-events: none;
     z-index: -1;
-    background-image: 
+    background-image:
         linear-gradient(rgba(255, 0, 255, 0.1) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 0, 255, 0.1) 1px, transparent 1px);
     background-size: 50px 50px;
@@ -1584,8 +1674,13 @@ body.light-mode .modal-footer {
 }
 
 @keyframes synthwave-grid {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(50px); }
+    0% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(50px);
+    }
 }
 
 /* Tokyo Night Breathing */
@@ -1594,10 +1689,13 @@ body.light-mode .modal-footer {
 }
 
 @keyframes tokyo-breathe {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: scale(1);
         opacity: 1;
     }
+
     50% {
         transform: scale(1.02);
         opacity: 0.95;
@@ -1606,16 +1704,17 @@ body.light-mode .modal-footer {
 
 /* Disable animations on mobile for performance */
 @media (max-width: 768px) {
+
     [data-theme="matrix-rain"]::before,
     [data-theme="synthwave"]::after {
         animation: none;
     }
-    
+
     [data-theme="neon-dreams"] .card,
     [data-theme="tokyo-night"] .card {
         animation: none;
     }
-    
+
     [data-theme="aurora-borealis"] {
         animation: none;
     }
@@ -1809,6 +1908,7 @@ body.light-mode .modal-footer {
 
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
+
     [data-theme] select,
     [data-theme] input[type="date"] {
         font-size: 0.75rem;
@@ -1821,7 +1921,9 @@ body.light-mode .modal-footer {
    ================================= */
 
 /* Ensure text is always visible in all form elements */
-select, input[type="date"], .theme-selector {
+select,
+input[type="date"],
+.theme-selector {
     color: #e0e0e0 !important;
     background: #1a1a2e !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -2543,76 +2645,90 @@ select option {
 }
 
 @media (max-width: 640px) {
-  #billingCycleBtn, #configBtn {
-    font-size: 10px !important;
-    padding: 1px 4px !important;
-    height: 30px !important;
-    min-height: 24px !important;
-    max-height: 30px !important;
-    line-height: 22px !important;
-    min-width: 30px !important;
-    max-width: 90px;
-    border-radius: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  #billingCycleBtn span, #configBtn span {
-    display: none;
-  }
-  #billingCycleBtn i, #configBtn i {
-    display: inline-block;
-    font-size: 20px !important;
-    margin-right: 0;
-    line-height: 1;
-  }
+
+    #billingCycleBtn,
+    #configBtn {
+        font-size: 10px !important;
+        padding: 1px 4px !important;
+        height: 30px !important;
+        min-height: 24px !important;
+        max-height: 30px !important;
+        line-height: 22px !important;
+        min-width: 30px !important;
+        max-width: 90px;
+        border-radius: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #billingCycleBtn span,
+    #configBtn span {
+        display: none;
+    }
+
+    #billingCycleBtn i,
+    #configBtn i {
+        display: inline-block;
+        font-size: 20px !important;
+        margin-right: 0;
+        line-height: 1;
+    }
 }
+
 @media (min-width: 641px) {
-  #billingCycleBtn span, #configBtn span {
-    display: inline;
-  }
+
+    #billingCycleBtn span,
+    #configBtn span {
+        display: inline;
+    }
 }
 
 @media (max-width: 600px) {
-  .summary-stat-row {
-    gap: 2px;
-    font-size: 0.65rem;
-    margin: 2px 0;
-    padding: 0;
-    flex-wrap: nowrap;
-  }
-  .summary-stat-row span {
-    padding: 0 1px;
-    min-width: 0;
-    font-size: 0.55rem;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-  }
+    .summary-stat-row {
+        gap: 2px;
+        font-size: 0.65rem;
+        margin: 2px 0;
+        padding: 0;
+        flex-wrap: nowrap;
+    }
+
+    .summary-stat-row span {
+        padding: 0 1px;
+        min-width: 0;
+        font-size: 0.55rem;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
 }
+
 @media (max-width: 600px) {
-  #tableStats .grid {
-    gap: 2px !important;
-  }
-  #tableStats .bg-blue-900,
-  #tableStats .bg-green-900,
-  #tableStats .bg-red-900 {
-    padding: 6px !important;
-  }
-  #tableStats h4 {
-    font-size: 0.85rem !important;
-    margin-bottom: 4px !important;
-  }
-  #tableStats .text-xs,
-  #tableStats div,
-  #tableStats strong,
-  #tableStats span {
-    font-size: 0.65rem !important;
-    line-height: 1.1 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    white-space: nowrap !important;
-    text-overflow: ellipsis !important;
-    overflow: hidden !important;
-  }
+    #tableStats .grid {
+        gap: 2px !important;
+    }
+
+    #tableStats .bg-blue-900,
+    #tableStats .bg-green-900,
+    #tableStats .bg-red-900 {
+        padding: 6px !important;
+    }
+
+    #tableStats h4 {
+        font-size: 0.85rem !important;
+        margin-bottom: 4px !important;
+    }
+
+    #tableStats .text-xs,
+    #tableStats div,
+    #tableStats strong,
+    #tableStats span {
+        font-size: 0.65rem !important;
+        line-height: 1.1 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+    }
 }

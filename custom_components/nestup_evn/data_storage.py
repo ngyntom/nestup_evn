@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import asyncio
 from datetime import date, datetime, timedelta
@@ -6,8 +7,10 @@ from typing import Dict, List, Tuple, Optional
 
 from homeassistant.core import HomeAssistant
 from .utils import calc_ecost, parse_evnhanoi_money
+from .const import DOMAIN, CONF_AREA
 
 DATE_FMT = "%d-%m-%Y"
+_LOGGER = logging.getLogger(__name__)
 DEFAULT_HISTORY_START_DATE = date(2025, 1, 1)
 
 def daterange(start: date, end: date):
@@ -25,13 +28,13 @@ class EVNDataStorage:
         history_start_date: Optional[date] = None,
     ):
         self.hass = hass
-        self.customer_id = customer_id
+        self.customer_id = customer_id.strip() if customer_id else ""
 
         self.storage_dir = hass.config.path("nestup_evn")
         os.makedirs(self.storage_dir, exist_ok=True)
 
         self.file_path = os.path.join(
-            self.storage_dir, f"{customer_id}.json"
+            self.storage_dir, f"{self.customer_id}.json"
         )
 
         self._lock = asyncio.Lock()
@@ -40,34 +43,64 @@ class EVNDataStorage:
             history_start_date or DEFAULT_HISTORY_START_DATE
         )
 
-        # load once
-        self.data: Dict = self._load()
-        self.data.setdefault("daily", [])
-        self.data.setdefault("monthly", [])
-
-        self.save()
+        # Non-blocking initialization
+        self.data: Dict = {"daily": [], "monthly": []}
+        self._backfill_done = False
 
     # ------------------------------------------------------------------
     # BASIC STORAGE
     # ------------------------------------------------------------------
     def _load(self) -> Dict:
+        """Synchronous load from file."""
+        if not self.customer_id:
+            return {"daily": [], "monthly": []}
+        
         if not os.path.exists(self.file_path):
-            return {}
+            _LOGGER.debug("Storage: File %s not found, starting fresh", self.file_path)
+            return {"daily": [], "monthly": []}
+            
         try:
             with open(self.file_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
+                content = f.read()
+                if not content.strip():
+                    _LOGGER.warning("Storage: File %s is empty", self.file_path)
+                    return {"daily": [], "monthly": []}
+                
+                data = json.loads(content)
+                if not isinstance(data, dict):
+                    _LOGGER.error("Storage: Malformed data in %s (not a dict)", self.file_path)
+                    return {"daily": [], "monthly": []}
+                    
+                data.setdefault("daily", [])
+                data.setdefault("monthly", [])
+                _LOGGER.debug("Storage: Successfully loaded %d daily and %d monthly records for %s", len(data["daily"]), len(data["monthly"]), self.customer_id)
+                return data
+        except Exception as e:
+            _LOGGER.error("Storage: Failed to load %s: %s", self.file_path, e)
+            # We raise here to let async_load know it failed
+            raise
 
-    def save(self):
+    def _save_sync(self):
+        """Synchronous save to file."""
         try:
-            with open(self.file_path, "w", encoding="utf-8") as f:
+            temp_path = self.file_path + ".tmp"
+            with open(temp_path, "w", encoding="utf-8") as f:
                 json.dump(self.data, f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
+            os.replace(temp_path, self.file_path)
+            _LOGGER.debug("Storage: Saved history for %s to %s", self.customer_id, self.file_path)
+        except Exception as e:
+            _LOGGER.error("Storage: Failed to save %s: %s", self.file_path, e)
+            raise
+
+    async def async_save(self):
+        """Save data asynchronously."""
+        # The lock should be handled by the caller if they are doing multiple operations.
+        # But for a simple save, the executor job itself is atomic enough for the file write.
+        await self.hass.async_add_executor_job(self._save_sync)
 
     async def async_load(self):
-        return
+        """Load data asynchronously."""
+        self.data = await self.hass.async_add_executor_job(self._load)
 
     # ------------------------------------------------------------------
     # DAILY REALTIME UPDATE (từ sensor)
@@ -90,8 +123,9 @@ class EVNDataStorage:
                 "Tiền điện (VND)": None,
             }
 
-            self._add_daily_record(record)
-            self.save()
+            async with self._lock:
+                self._add_daily_record(record)
+                await self.async_save()
 
         except Exception:
             pass
@@ -114,6 +148,7 @@ class EVNDataStorage:
         try:
             d = datetime.strptime(record["Ngày"], DATE_FMT).date()
         except Exception:
+            _LOGGER.warning("Storage: Invalid date format in record: %s", record)
             return
 
         if d in self._existing_daily_dates():
@@ -123,220 +158,103 @@ class EVNDataStorage:
         self.data["daily"].sort(
             key=lambda x: datetime.strptime(x["Ngày"], DATE_FMT)
         )
+        _LOGGER.debug("Storage: Added daily record for %s to %s", record["Ngày"], self.customer_id)
 
     def get_missing_daily_ranges(self) -> List[Tuple[date, date]]:
         today = date.today() - timedelta(days=1)
-
         if self.history_start_date > today:
             return []
 
         existing = self._existing_daily_dates()
-        if not existing:
-            return [(self.history_start_date, today)]
-
-        missing = []
+        ranges = []
         start = None
 
-        for d in daterange(self.history_start_date, today):
+        for d in daterange(self.history_start_date, today + timedelta(days=1)):
             if d not in existing:
                 start = start or d
             else:
                 if start:
-                    missing.append((start, d - timedelta(days=1)))
+                    ranges.extend(self._split_range(start, d - timedelta(days=1)))
                     start = None
 
         if start:
-            missing.append((start, today))
+            ranges.extend(self._split_range(start, today))
 
-        return missing
+        return ranges
+
+    def _split_range(self, start: date, end: date, chunk_days: int = 30) -> List[Tuple[date, date]]:
+        """Split a large date range into smaller chunks."""
+        chunks = []
+        curr = start
+        while curr <= end:
+            next_end = min(curr + timedelta(days=chunk_days - 1), end)
+            chunks.append((curr, next_end))
+            curr = next_end + timedelta(days=1)
+        return chunks
 
     # ------------------------------------------------------------------
     # DAILY BACKFILL
     # ------------------------------------------------------------------
-    def start_background_backfill(self, api):
+    @property
+    def backfill_done(self) -> bool:
+        return self._backfill_done
+
+    def start_background_backfill(self, api, area, username, password):
+        if self._backfill_done:
+            return
         self.hass.async_create_task(
-            self._async_run_daily_backfill(api)
+            self._async_run_daily_backfill(api, area, username, password)
         )
 
-    async def _async_run_daily_backfill(self, api):
-        async with self._lock:
-            for start, end in self.get_missing_daily_ranges():
-                if start > end:
+    async def _async_run_daily_backfill(self, api, area, username, password):
+        try:
+            async with self._lock:
+                missing = self.get_missing_daily_ranges()
+            
+            if not missing:
+                self._backfill_done = True
+                _LOGGER.debug("Storage: No missing daily ranges for %s", self.customer_id)
+                return
+
+            _LOGGER.debug("Storage: Starting backfill for %s (%d chunks)", self.customer_id, len(missing))
+            instance = api.get_region_instance(area, self.customer_id)
+            if not instance:
+                _LOGGER.error("Storage: Could not get region instance for %s", area)
+                return
+
+            updated_any = False
+            for start, end in missing:
+                _LOGGER.debug("Storage: Fetching chunk %s to %s", start, end)
+                try:
+                    # Network call without lock
+                    daily_records = await instance.fetch_daily_history(
+                        username, password, self.customer_id, start, end
+                    )
+                    
+                    if not daily_records:
+                        _LOGGER.debug("Storage: No records for chunk %s to %s", start, end)
+                        continue
+
+                    updated = False
+                    async with self._lock:
+                        for record in daily_records:
+                            self._add_daily_record(record.to_dict())
+                            updated = True
+                            updated_any = True
+
+                        if updated:
+                            await self.async_save()
+                    
+                    if updated:
+                        _LOGGER.debug("Storage: Saved %d records for chunk %s to %s", len(daily_records), start, end)
+                except Exception as e:
+                    _LOGGER.error("Storage: Error fetching chunk %s to %s: %s", start, end, e)
                     continue
-
-                updated = False
-
-                # ===============================
-                # EVN SPC
-                # ===============================
-                if api._evn_area.get("name") == "EVNSPC":
-                    daily_raw = await api.fetch_daily_range_evnspc(
-                        self.customer_id,
-                        start.strftime("%d-%m-%Y"),
-                        end.strftime("%d-%m-%Y"),
-                    )
-
-                    if isinstance(daily_raw, list):
-                        for d in daily_raw:
-                            if not d.get("strTime"):
-                                continue
-                            try:
-                                d_date = datetime.strptime(
-                                    d["strTime"], "%d/%m/%Y"
-                                ).date()
-                            except Exception:
-                                continue
-
-                            if not (start <= d_date <= end):
-                                continue
-
-                            record = {
-                                "Ngày": d["strTime"].replace("/", "-"),
-                                "Điện tiêu thụ (kWh)": float(
-                                    d.get("dSanLuongBT") or 0
-                                ),
-                                "Tiền điện (VND)": None,
-                            }
-                            self._add_daily_record(record)
-                            updated = True
-
-                # ===============================
-                # EVN NPC
-                # ===============================
-                elif api._evn_area.get("name") == "EVNNPC":
-                    daily_raw = await api.fetch_daily_range_evnnpc(
-                        self.customer_id,
-                        start,
-                        end,
-                    )
-
-                    if isinstance(daily_raw, list):
-                        for d in daily_raw:
-                            if not d.get("NGAY"):
-                                continue
-                            try:
-                                d_date = datetime.strptime(
-                                    d["NGAY"], "%d/%m/%Y"
-                                ).date()
-                            except Exception:
-                                continue
-
-                            if not (start <= d_date <= end):
-                                continue
-
-                            record = {
-                                "Ngày": d["NGAY"].replace("/", "-"),
-                                "Điện tiêu thụ (kWh)": float(
-                                    d.get("DIEN_TTHU") or 0
-                                ),
-                                "Tiền điện (VND)": None,
-                            }
-                            self._add_daily_record(record)
-                            updated = True
-
-                # ===============================
-                # EVN CPC
-                # ===============================
-                elif api._evn_area.get("name") == "EVNCPC":
-                    daily_raw = await api.fetch_daily_range_evncpc(self.customer_id)
-
-                    if not isinstance(daily_raw, list):
-                        continue
-
-                    for d in daily_raw:
-                        ngay = d.get("ngay")
-                        kwh = d.get("sanLuongNgay")
-
-                        if not ngay or kwh is None:
-                            continue
-
-                        record = {
-                            "Ngày": datetime.fromisoformat(
-                                ngay.replace("Z", "")
-                            ).strftime(DATE_FMT),
-                            "Điện tiêu thụ (kWh)": float(kwh),
-                            "Tiền điện (VND)": None,
-                        }
-
-                        self._add_daily_record(record)
-                        updated = True
-
-                # ===============================
-                # EVN HCMC
-                # ===============================
-                elif api._evn_area.get("name") == "EVNHCMC":
-                    daily_raw = await api.fetch_daily_range_evnhcmc(
-                        self.customer_id,
-                        start.strftime("%d/%m/%Y"),
-                        end.strftime("%d/%m/%Y"),
-                    )
-
-                    if isinstance(daily_raw, list):
-                        for d in daily_raw:
-                            ngay = d.get("ngayFull")
-                            kwh = d.get("Tong")
-
-                            if not ngay or kwh is None:
-                                continue
-
-                            record = {
-                                "Ngày": ngay.replace("/", "-"),
-                                "Điện tiêu thụ (kWh)": float(kwh),
-                                "Tiền điện (VND)": None,
-                            }
-
-                            self._add_daily_record(record)
-                            updated = True
-
-                # ===============================
-                # EVN HANOI
-                # ===============================
-                elif api._evn_area.get("name") == "EVNHANOI":
-                    fetch_start = start - timedelta(days=1)
-
-                    raw = await api.fetch_daily_range_evnhanoi(
-                        self.customer_id, fetch_start, end
-                    )
-
-                    if not isinstance(raw, list):
-                        continue
-
-                    parsed = []
-                    for d in raw:
-                        s = d.get("ngayShort") or d.get("ngay")
-                        chi_so = d.get("chiSo")
-                        if not s or chi_so is None:
-                            continue
-                        try:
-                            parsed.append((
-                                datetime.strptime(s, "%d/%m/%Y").date(),
-                                float(chi_so),
-                            ))
-                        except Exception:
-                            continue
-
-                    if len(parsed) < 2:
-                        continue
-
-                    parsed.sort(key=lambda x: x[0])
-
-                    prev_date, prev_index = parsed[0]
-
-                    for cur_date, cur_index in parsed[1:]:
-                        kwh = max(0.0, cur_index - prev_index)
-
-                        if prev_date and start <= prev_date <= end:
-                            record = {
-                                "Ngày": prev_date.strftime(DATE_FMT),
-                                "Điện tiêu thụ (kWh)": round(kwh, 3),
-                                "Tiền điện (VND)": None,
-                            }
-                            self._add_daily_record(record)
-                            updated = True
-                        prev_date, prev_index = cur_date, cur_index
-
-                if updated:
-                    self.save()
+            
+            self._backfill_done = True
+            _LOGGER.debug("Storage: Backfill process finished for %s (Updated: %s)", self.customer_id, updated_any)
+        except Exception as e:
+            _LOGGER.error("Storage: Critical error in backfill for %s: %s", self.customer_id, e)
 
     # ------------------------------------------------------------------
     # MONTHLY HELPERS
@@ -381,222 +299,26 @@ class EVNDataStorage:
     # ------------------------------------------------------------------
     # MONTHLY SYNC
     # ------------------------------------------------------------------
-    async def async_sync_monthly_history(self, api):
+    async def async_sync_monthly_history(self, api, area, username, password):
+        instance = api.get_region_instance(area, self.customer_id)
+        if not instance: return
+
+        monthly_records = await instance.fetch_monthly_history(
+            username, password, self.customer_id, self.history_start_date
+        )
+        if not monthly_records: return
+
         existing_keys = self._existing_monthly_keys()
         updated = False
 
-        # ===============================
-        # EVN SPC
-        # ===============================
-        if api._evn_area.get("name") == "EVNSPC":
-            today = date.today()
-            end_year = today.year
-            end_month = today.month - 1 or 12
-
-            y, m = (
-                self.history_start_date.year,
-                self.history_start_date.month,
-            )
-
-            while (y, m) <= (end_year, end_month):
-                record = {
-                    "Tháng": m,
-                    "Năm": y,
-                }
-                key = self._monthly_record_key(record)
-
-                if key not in existing_keys:
-                    bills = await api.fetch_monthly_bills_evnspc(
-                        self.customer_id, m, y, m, y
-                    )
-
-                    if isinstance(bills, list):
-                        for b in bills:
-                            record = {
-                                "Tháng": b.get("iThang"),
-                                "Năm": b.get("iNam"),
-                                "Điện tiêu thụ (KWh)": b.get("dSanLuong"),
-                                "Tiền Điện": b.get("lTongTien"),
-                            }
-                            k = self._monthly_record_key(record)
-                            if k and k not in existing_keys:
-                                self.data["monthly"].append(record)
-                                existing_keys.add(k)
-                                updated = True
-
-                if m == 12:
-                    y += 1
-                    m = 1
-                else:
-                    m += 1
-
-        # ===============================
-        # EVN NPC
-        # ===============================        
-        elif api._evn_area.get("name") == "EVNNPC":
-            bills = await api.fetch_monthly_bills_evnnpc(
-                self.customer_id,
-                self.history_start_date.month,
-                self.history_start_date.year,
-                date.today().month,
-                date.today().year,
-            )
-
-            if not isinstance(bills, list):
-                return
-
-            bills.sort(key=lambda x: (x.get("NAM", 0), x.get("THANG", 0)))
-
-            existing_keys = self._existing_monthly_keys()
-
-            for b in bills:
-                year = b.get("NAM")
-                month = b.get("THANG")
-                kwh = b.get("DIEN_TTHU")
-
-                if not year or not month or kwh is None:
-                    continue
-
-                key = self._monthly_record_key(
-                    year=year,
-                    month=month,
-                )
-
-                if key in existing_keys:
-                    continue
-
-                record = {
-                    "Tháng": month,
-                    "Năm": year,
-                    "Điện tiêu thụ (KWh)": float(kwh),
-                    "Tiền Điện": calc_ecost(float(kwh)),
-                }
-
-                self.data["monthly"].append(record)
-                existing_keys.add(key)
-                updated = True
-
-        # ===============================
-        # EVN CPC
-        # ===============================
-        elif api._evn_area.get("name") == "EVNCPC":
-
-            bills = await api.fetch_monthly_bills_evncpc(self.customer_id)
-            if not isinstance(bills, list):
-                return
-
-            existing_keys = self._existing_monthly_keys()
-            updated = False
-
-            start_date = self.history_start_date
-
-            for b in bills:
-                try:
-                    year = int(b.get("NAM"))
-                    month = int(b.get("THANG"))
-                    kwh = float(b.get("DIEN_TTHU") or b.get("SAN_LUONG") or 0)
-                    cost = int(b.get("TONG_TIEN")) if b.get("TONG_TIEN") is not None else None
-                except Exception:
-                    continue
-
-                try:
-                    dky = b.get("NGAY_DKY")
-                    if dky:
-                        bill_date = datetime.fromisoformat(dky.replace("Z", "")).date()
-                        if bill_date < start_date:
-                            continue
-                except Exception:
-                    if (year, month) < (start_date.year, start_date.month):
-                        continue
-
-                key = self._monthly_record_key(year=year, month=month)
-                if key in existing_keys:
-                    continue
-
-                record = {
-                    "Tháng": month,
-                    "Năm": year,
-                    "Điện tiêu thụ (KWh)": kwh,
-                    "Tiền Điện": cost,
-                }
-
-                self.data["monthly"].append(record)
-                existing_keys.add(key)
-                updated = True
-
-            if updated:
-                self.data["monthly"].sort(
-                    key=lambda x: (x.get("Năm"), x.get("Tháng"))
-                )
-                self.save()
-
-
-        # ===============================
-        # EVN HCMC
-        # ===============================
-        elif api._evn_area.get("name") == "EVNHCMC":
-            bills = await api.fetch_monthly_bills_evnhcmc(self.customer_id)
-
-            if not isinstance(bills, list):
-                return
-
-            existing_keys = self._existing_monthly_keys()
-
-            for b in bills:
-                year = int(b.get("NAM"))
-                month = int(b.get("THANG"))
-                kwh = float(b.get("SAN_LUONG", 0))
-                cost = float(b.get("TONG_TIEN", 0))
-
-                key = self._monthly_record_key(year=year, month=month)
-                if key in existing_keys:
-                    continue
-
-                record = {
-                    "Tháng": month,
-                    "Năm": year,
-                    "Điện tiêu thụ (KWh)": kwh,
-                    "Tiền Điện": int(cost),
-                }
-
-                self.data["monthly"].append(record)
-                existing_keys.add(key)
-                updated = True
-
-        # ===============================
-        # EVN HANOI
-        # ===============================
-        elif api._evn_area.get("name") == "EVNHANOI":
-
-            bills = await api.fetch_monthly_bills_evnhanoi(self.customer_id)
-            if not isinstance(bills, list):
-                return
-
-            existing_keys = self._existing_monthly_keys()
-            updated = False
-
-            for b in bills:
-                try:
-                    year = int(b.get("nam"))
-                    month = int(b.get("thang"))
-                    kwh = float(b.get("dienTthu"))
-                except Exception:
-                    continue
-
-                cost = parse_evnhanoi_money(b.get("soTien"))
-
-                key = self._monthly_record_key(year=year, month=month)
-                if key in existing_keys:
-                    continue
-
-                record = {
-                    "Tháng": month,
-                    "Năm": year,
-                    "Điện tiêu thụ (KWh)": kwh,
-                    "Tiền Điện": cost,
-                }
-
-                self.data["monthly"].append(record)
+        for record in monthly_records:
+            record_dict = record.to_dict()
+            if record_dict.get("Tiền Điện") is None and record.kwh:
+                record_dict["Tiền Điện"] = calc_ecost(record.kwh)
+                
+            key = self._monthly_record_key(record_dict)
+            if key not in existing_keys:
+                self.data["monthly"].append(record_dict)
                 existing_keys.add(key)
                 updated = True
        
@@ -604,7 +326,7 @@ class EVNDataStorage:
             self.data["monthly"].sort(
                 key=lambda x: (x.get("Năm"), x.get("Tháng"))
             )
-            self.save()
+            await self.async_save()
 
     # ------------------------------------------------------------------
     # WEB UI EXPORT

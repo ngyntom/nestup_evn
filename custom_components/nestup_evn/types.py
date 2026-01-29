@@ -25,6 +25,60 @@ from .const import (
     ID_LOADSHEDDING,
     ID_TO_DATE,
 )
+from datetime import date, datetime
+
+
+@dataclass
+class EVNUpdateResponse:
+    """Dataclass for standardized sensor update response."""
+
+    status: str
+    econ_total_new: float | None = None
+    econ_total_old: float | None = None
+    econ_daily_new: float | None = None
+    econ_daily_old: float | None = None
+    econ_monthly_new: float | None = None
+    payment_needed: str | None = None
+    m_payment_needed: int | None = None
+    loadshedding: str | None = None
+    from_date: date | None = None
+    to_date: date | None = None
+    previous_date: date | None = None
+    data: Any | None = None
+
+
+@dataclass
+class DailyHistoryRecord:
+    """Dataclass for a single day consumption record."""
+
+    date: date
+    kwh: float
+    cost: int | None = None
+
+    def to_dict(self):
+        return {
+            "Ngày": self.date.strftime("%d-%m-%Y"),
+            "Điện tiêu thụ (kWh)": self.kwh,
+            "Tiền điện (VND)": self.cost,
+        }
+
+
+@dataclass
+class MonthlyBillRecord:
+    """Dataclass for a monthly bill record."""
+
+    month: int
+    year: int
+    kwh: float
+    cost: int | None = None
+
+    def to_dict(self):
+        return {
+            "Tháng": self.month,
+            "Năm": self.year,
+            "Điện tiêu thụ (KWh)": self.kwh,
+            "Tiền Điện": self.cost,
+        }
 
 
 @dataclass

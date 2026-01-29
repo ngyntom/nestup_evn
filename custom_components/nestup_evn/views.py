@@ -191,3 +191,58 @@ class EVNDailyDataView(HomeAssistantView):
                 {"error": str(ex)},
                 status=500,
             )
+
+class EVNPricingView(HomeAssistantView):
+    """Return electricity price tiers."""
+
+    url = "/api/nestup_evn/pricing"
+    name = "api:nestup_evn:pricing"
+    requires_auth = False
+
+    def __init__(self, hass):
+        self.hass = hass
+
+    async def get(self, request):
+        from .const import VIETNAM_ECOST_STAGES, VIETNAM_ECOST_VAT
+        return web.json_response({
+            "tiers": VIETNAM_ECOST_STAGES,
+            "vat": VIETNAM_ECOST_VAT
+        })
+
+class EVNStatusView(HomeAssistantView):
+    """Return real-time sensor status for the account."""
+
+    url = "/api/nestup_evn/status/{account}"
+    name = "api:nestup_evn:status"
+    requires_auth = False
+
+    def __init__(self, hass):
+        self.hass = hass
+
+    async def get(self, request, account):
+        try:
+            from .const import ID_ECON_MONTHLY_NEW
+            
+            # Lookup sensor state for this account
+            # Entity ID format: sensor.{customer_id}_{econ_monthly_new}
+            entity_id = f"sensor.{account.lower()}_{ID_ECON_MONTHLY_NEW}"
+            state = self.hass.states.get(entity_id)
+            
+            value = 0
+            if state and state.state not in ("unknown", "unavailable"):
+                try:
+                    value = float(state.state)
+                except ValueError:
+                    pass
+            
+            return web.json_response({
+                "account": account,
+                "sensor": entity_id,
+                "monthly_consumption": value
+            })
+
+        except Exception as ex:
+            return web.json_response(
+                {"error": str(ex)},
+                status=500,
+            )

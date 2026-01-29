@@ -13,7 +13,7 @@ class ChartManager {
             easing: 'easeInOutQuart',
             delay: (ctx) => ctx.dataIndex * 80
         };
-        
+
         Chart.defaults.datasets.line.animation = {
             duration: 1200,
             easing: 'easeInOutQuart',
@@ -34,13 +34,13 @@ class ChartManager {
 
         // Thêm dữ liệu từ monthlyData
         monthlyData.SanLuong.forEach((item, index) => {
-            labels.push(`Tháng ${item.Tháng}`);
+            labels.push(`Tháng ${item.Tháng}/${item.Năm.toString().slice(-2)}`);
             consumptionData.push(parseInt(item["Điện tiêu thụ (KWh)"] || 0));
-            
+
             // Tìm dữ liệu tiền điện tương ứng
-            const correspondingCost = monthlyData.TienDien.find(cost => cost.Tháng === item.Tháng);
+            const correspondingCost = monthlyData.TienDien.find(cost => cost.Tháng === item.Tháng && cost.Năm === item.Năm);
             costData.push(parseInt(correspondingCost ? correspondingCost["Tiền Điện"] : 0));
-            
+
             backgroundColors.push('rgba(147, 112, 219, 0.8)');
             borderColors.push('rgba(147, 112, 219, 1)');
         });        // Thêm dữ liệu kỳ hiện tại nếu có
@@ -70,20 +70,20 @@ class ChartManager {
                     {
                         label: 'Hóa đơn (VND)',
                         data: costData,
-                        backgroundColor: costData.map((_, index) => 
-                            index === costData.length - 1 && currentPeriod ? 
-                            'rgba(255, 152, 0, 0.8)' : 'rgba(233, 97, 171, 0.8)'
+                        backgroundColor: costData.map((_, index) =>
+                            index === costData.length - 1 && currentPeriod ?
+                                'rgba(255, 152, 0, 0.8)' : 'rgba(233, 97, 171, 0.8)'
                         ),
-                        borderColor: costData.map((_, index) => 
-                            index === costData.length - 1 && currentPeriod ? 
-                            'rgba(255, 152, 0, 1)' : 'rgba(233, 97, 171, 1)'
+                        borderColor: costData.map((_, index) =>
+                            index === costData.length - 1 && currentPeriod ?
+                                'rgba(255, 152, 0, 1)' : 'rgba(233, 97, 171, 1)'
                         ),
                         borderWidth: 1,
                         yAxisID: 'y2',
                         datalabels: { display: false }
                     }
                 ]
-            },                options: {
+            }, options: {
                 animation: {
                     duration: 800, // Giảm thời gian animation
                     easing: 'easeOutQuart'
@@ -95,44 +95,46 @@ class ChartManager {
                 hover: {
                     animationDuration: 0 // Tắt animation khi hover
                 },
-                scales: {                    y1: {
+                scales: {
+                    y1: {
                         type: 'linear',
                         position: 'left',
                         beginAtZero: true,
-                        ticks: { 
+                        ticks: {
                             color: this.getCurrentThemeColors().textColor
                         },
-                        title: { 
-                            display: true, 
-                            text: 'Tiêu thụ (kWh)', 
+                        title: {
+                            display: true,
+                            text: 'Tiêu thụ (kWh)',
                             color: this.getCurrentThemeColors().textColor
                         }
-                    },                    y2: {
+                    }, y2: {
                         type: 'linear',
                         position: 'right',
                         beginAtZero: true,
-                        ticks: { 
+                        ticks: {
                             color: this.getCurrentThemeColors().textColor
                         },
-                        title: { 
-                            display: true, 
-                            text: 'Hóa đơn (VND)', 
+                        title: {
+                            display: true,
+                            text: 'Hóa đơn (VND)',
                             color: this.getCurrentThemeColors().textColor
                         },
                         grid: { drawOnChartArea: false }
                     }
-                },                plugins: {                    legend: { 
-                        labels: { 
+                }, plugins: {
+                    legend: {
+                        labels: {
                             color: this.getCurrentThemeColors().textColor
-                        } 
+                        }
                     },
                     tooltip: {
                         animation: {
                             duration: 0 // Tắt animation tooltip để tránh nháy
-                        },                        callbacks: {
-                            label: function(context) {
+                        }, callbacks: {
+                            label: function (context) {
                                 const isCurrentPeriod = context.label === 'Kỳ này';
-                                
+
                                 if (context.datasetIndex === 0) {
                                     // Dataset tiêu thụ
                                     let label = `${context.dataset.label}: ${context.parsed.y.toFixed(2)} kWh`;
@@ -169,8 +171,8 @@ class ChartManager {
     // Tạo biểu đồ ngày
     createDailyChart(filteredData) {
         const data = filteredData.filter(day => day["Điện tiêu thụ (kWh)"] > 0);
-        data.sort((a, b) => 
-            new Date(a.Ngày.split('-').reverse().join('-')) - 
+        data.sort((a, b) =>
+            new Date(a.Ngày.split('-').reverse().join('-')) -
             new Date(b.Ngày.split('-').reverse().join('-'))
         );
 
@@ -180,7 +182,7 @@ class ChartManager {
                 day._trend = 'flat';
                 day._trendValue = 0;
             } else {
-                const prev = arr[idx-1]["Điện tiêu thụ (kWh)"];
+                const prev = arr[idx - 1]["Điện tiêu thụ (kWh)"];
                 const val = day["Điện tiêu thụ (kWh)"];
                 day._trend = val > prev ? 'up' : (val < prev ? 'down' : 'flat');
                 day._trendValue = val - prev;
@@ -193,14 +195,14 @@ class ChartManager {
         // Highlight max/min
         const maxVal = Math.max(...dailyDataValues);
         const minVal = Math.min(...dailyDataValues);
-        
-        const pointBackgroundColors = dailyDataValues.map(v => 
+
+        const pointBackgroundColors = dailyDataValues.map(v =>
             v === maxVal ? '#2ecc40' : v === minVal ? '#e74c3c' : 'rgba(233,97,171,0.6)'
         );
-        const pointRadius = dailyDataValues.map(v => 
+        const pointRadius = dailyDataValues.map(v =>
             v === maxVal || v === minVal ? 7 : 4
         );
-        const pointStyle = dailyDataValues.map(v => 
+        const pointStyle = dailyDataValues.map(v =>
             v === maxVal ? 'star' : v === minVal ? 'triangle' : 'circle'
         );
 
@@ -229,12 +231,12 @@ class ChartManager {
                             const v = dailyDataValues[ctx.p0DataIndex];
                             if (v === maxVal) return '#2ecc40';
                             if (v === minVal) return '#e74c3c';
-                            return data[ctx.p0DataIndex]._trend === 'up' ? 
-                                'rgba(46,204,113,1)' : 
-                                data[ctx.p0DataIndex]._trend === 'down' ? 
-                                'rgba(231,76,60,1)' : 'rgba(147,112,219,1)';
+                            return data[ctx.p0DataIndex]._trend === 'up' ?
+                                'rgba(46,204,113,1)' :
+                                data[ctx.p0DataIndex]._trend === 'down' ?
+                                    'rgba(231,76,60,1)' : 'rgba(147,112,219,1)';
                         }
-                    },                    tension: 0.4,
+                    }, tension: 0.4,
                     pointBackgroundColor: pointBackgroundColors,
                     pointRadius: pointRadius,
                     pointStyle: pointStyle,
@@ -242,7 +244,7 @@ class ChartManager {
                     pointHoverBackgroundColor: '#e961ab',
                     pointBorderWidth: 1, // Giảm border width
                 }]
-            },            options: {
+            }, options: {
                 animation: {
                     duration: 800, // Giảm thời gian animation
                     easing: 'easeOutQuart'
@@ -253,35 +255,35 @@ class ChartManager {
                 },
                 hover: {
                     animationDuration: 0 // Tắt animation khi hover
-                },                scales: { 
-                    y: { 
-                        beginAtZero: true, 
-                        ticks: { 
+                }, scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
                             color: this.getCurrentThemeColors().textColor
-                        } 
-                    } 
-                },                plugins: {
-                    legend: { 
-                        labels: { 
+                        }
+                    }
+                }, plugins: {
+                    legend: {
+                        labels: {
                             color: this.getCurrentThemeColors().textColor
-                        } 
+                        }
                     },
                     tooltip: {
                         animation: {
                             duration: 0 // Tắt animation tooltip để tránh nháy
                         },
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 const idx = context.dataIndex;
                                 const day = data[idx];
                                 let label = `${context.dataset.label}: ${context.parsed.y.toFixed(2)} kWh`;
-                                
+
                                 if (typeof day._trend !== 'undefined' && idx > 0) {
-                                    const trendText = day._trend === 'up' ? '↗️' : 
-                                                    day._trend === 'down' ? '↘️' : '➡️';
+                                    const trendText = day._trend === 'up' ? '↗️' :
+                                        day._trend === 'down' ? '↘️' : '➡️';
                                     label += ` ${trendText} ${day._trendValue > 0 ? '+' : ''}${day._trendValue.toFixed(2)}`;
                                 }
-                                
+
                                 if (context.parsed.y === maxVal) label += '  ⭐ Max';
                                 if (context.parsed.y === minVal) label += '  🥇 Min';
                                 label += `\nNgày: ${day.Ngày}`;
@@ -301,14 +303,14 @@ class ChartManager {
     // Highlight cột lớn nhất/nhỏ nhất bằng hiệu ứng glow
     highlightBarGlow(chart, color = '#e961ab') {
         if (!chart) return;
-        
+
         const ctx = chart.ctx;
         const dataset = chart.data.datasets[0];
         if (!dataset) return;
-        
+
         const max = Math.max(...dataset.data);
         const min = Math.min(...dataset.data);
-        
+
         chart.getDatasetMeta(0).data.forEach((bar, i) => {
             if (dataset.data[i] === max || dataset.data[i] === min) {
                 ctx.save();
@@ -328,7 +330,7 @@ class ChartManager {
     updateChartsTheme() {
         const currentTheme = document.body.getAttribute('data-theme') || 'dark-gradient';
         const themeConfig = this.getThemeChartConfig(currentTheme);
-        
+
         // Update monthly chart if exists
         if (this.monthlyChart) {
             this.monthlyChart.options.plugins.legend.labels.color = themeConfig.textColor;
@@ -338,7 +340,7 @@ class ChartManager {
             this.monthlyChart.options.scales.y.grid.color = themeConfig.gridColor;
             this.monthlyChart.update('none');
         }
-        
+
         // Update daily chart if exists
         if (this.dailyChart) {
             this.dailyChart.options.plugins.legend.labels.color = themeConfig.textColor;
@@ -349,7 +351,7 @@ class ChartManager {
             this.dailyChart.update('none');
         }
     }
-    
+
     // Get theme-specific chart configuration
     getThemeChartConfig(themeName) {
         const configs = {
@@ -370,7 +372,7 @@ class ChartManager {
             'tokyo-night': { textColor: '#a9b1d6', gridColor: 'rgba(169, 177, 214, 0.2)' },
             'minimal-light': { textColor: '#333333', gridColor: 'rgba(51, 51, 51, 0.1)' }
         };
-        
+
         return configs[themeName] || configs['dark-gradient'];
     }
 
