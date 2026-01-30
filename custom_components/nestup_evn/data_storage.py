@@ -7,7 +7,12 @@ from typing import Dict, List, Tuple, Optional
 
 from homeassistant.core import HomeAssistant
 from .utils import calc_ecost, parse_evnhanoi_money
-from .const import DOMAIN, CONF_AREA
+from .const import (
+    DOMAIN, 
+    CONF_AREA, 
+    ID_ECON_MONTHLY_NEW, 
+    ID_ECOST_MONTHLY_NEW
+)
 
 DATE_FMT = "%d-%m-%Y"
 _LOGGER = logging.getLogger(__name__)
@@ -125,6 +130,31 @@ class EVNDataStorage:
 
             async with self._lock:
                 self._add_daily_record(record)
+                
+                # Update monthly data from sensor
+                m_kwh = data.get(ID_ECON_MONTHLY_NEW)
+                m_cost = data.get(ID_ECOST_MONTHLY_NEW)
+                
+                if hasattr(to_date, "month") and m_kwh is not None:
+                    m_list = self.data.setdefault("monthly", [])
+                    found_m = False
+                    for m_rec in m_list:
+                        if m_rec.get("Tháng") == to_date.month and m_rec.get("Năm") == to_date.year:
+                            m_rec["Điện tiêu thụ (KWh)"] = float(m_kwh)
+                            if m_cost is not None:
+                                m_rec["Tiền Điện"] = int(m_cost)
+                            found_m = True
+                            break
+                    
+                    if not found_m:
+                        rec = {
+                            "Tháng": to_date.month,
+                            "Năm": to_date.year,
+                            "Điện tiêu thụ (KWh)": float(m_kwh),
+                            "Tiền Điện": int(m_cost) if m_cost is not None else calc_ecost(float(m_kwh))
+                        }
+                        m_list.append(rec)
+
                 await self.async_save()
 
         except Exception:

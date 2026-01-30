@@ -82,11 +82,36 @@ class NPCRegion(EVNRegion):
             
         return record_response
 
-    async def fetch_daily_range(self, customer_id: str, from_date: date, to_date: date):
-        headers = {"authorization": f"Bearer {self._evn_area.get('access_token')}"}
-        payload = {"MA_DVIQLY": customer_id[:6], "MA_DDO": f"{customer_id}001", "TU_NGAY": from_date.strftime("%d/%m/%Y"), "DEN_NGAY": to_date.strftime("%d/%m/%Y")}
-        status, resp_json = await self._request("POST", "https://apicskhevn.npc.com.vn/api/evn/tracuu/diennangngay", json_data=payload, headers=headers, api_name="NPC Daily Range")
-        return resp_json.get("data", []) if status == CONF_SUCCESS else []
+
+
+    async def fetch_daily_range(self, customer_id: str, from_date: date, to_date: date, endpoint: str = "diennangngay"):
+        headers = {
+            "accept": "application/json, text/plain, */*",
+            "authorization": f"Bearer {self._evn_area.get('access_token')}",
+            "Content-Type": "application/json",
+            "User-Agent": "okhttp/4.12.0",
+            "Host": "apicskhevn.npc.com.vn",
+            "Connection": "Keep-Alive"
+        }
+        
+        url = f"https://apicskhevn.npc.com.vn/api/evn/tracuu/{endpoint}"
+        ma_ddo = customer_id if len(customer_id) >= 16 else f"{customer_id}001"
+        payload = {
+            "MA_DVIQLY": customer_id[:6],
+            "MA_DDO": ma_ddo,
+            "TU_NGAY": from_date.strftime("%d/%m/%Y"),
+            "DEN_NGAY": to_date.strftime("%d/%m/%Y")
+        }
+        
+        status, resp_json = await self._request("POST", url, json_data=payload, headers=headers, use_ssl=False, api_name=f"NPC Daily ({endpoint})")
+        
+        data = []
+        if status == CONF_SUCCESS:
+            if isinstance(resp_json, list):
+                data = resp_json
+            elif isinstance(resp_json, dict):
+                data = resp_json.get("data", [])
+        return data
 
     async def fetch_monthly_bills(self, customer_id: str, from_month, from_year, to_month, to_year):
         headers = {"authorization": f"Bearer {self._evn_area.get('access_token')}"}
@@ -101,38 +126,14 @@ class NPCRegion(EVNRegion):
             _LOGGER.error("NPC: Login failed during history fetch")
             return []
             
-        headers = {
-            "accept": "application/json, text/plain, */*",
-            "authorization": f"Bearer {self._evn_area.get('access_token')}",
-            "Content-Type": "application/json",
-            "User-Agent": "okhttp/4.12.0",
-            "Host": "apicskhevn.npc.com.vn",
-            "Connection": "Keep-Alive"
-        }
-        
-        # Try both diennangngay and chisongay
+        # Try diennangngay first as it is more likely to have consumption data
         results = []
-        for endpoint in ["chisongay", "diennangngay"]:
-            url = f"https://apicskhevn.npc.com.vn/api/evn/tracuu/{endpoint}"
-            ma_ddo = customer_id if len(customer_id) >= 16 else f"{customer_id}001"
-            payload = {
-                "MA_DVIQLY": customer_id[:6],
-                "MA_DDO": ma_ddo,
-                "TU_NGAY": start_date.strftime("%d/%m/%Y"),
-                "DEN_NGAY": end_date.strftime("%d/%m/%Y")
-            }
-            
-            status, resp_json = await self._request("POST", url, json_data=payload, headers=headers, use_ssl=False, api_name=f"NPC History ({endpoint})")
-            
-            data = []
-            if status == CONF_SUCCESS:
-                if isinstance(resp_json, list):
-                    data = resp_json
-                elif isinstance(resp_json, dict):
-                    data = resp_json.get("data", [])
+        for endpoint in ["diennangngay", "chisongay"]:
+            data = await self.fetch_daily_range(customer_id, start_date, end_date, endpoint)
             
             _LOGGER.debug("NPC (%s): Raw API returned %d records for %s", endpoint, len(data) if isinstance(data, list) else 0, customer_id)
             
+            current_results = []
             if data and isinstance(data, list):
                 # If we found data using chisongay, we need to calculate differences, 
                 # but if we used diennangngay, it's already usage.
@@ -146,9 +147,14 @@ class NPCRegion(EVNRegion):
                             kwh = float(d.get("DIEN_TTHU") or 0)
                             if kwh == 0 and "CS_MOI" in d and "CS_CU" in d:
                                 kwh = float(d["CS_MOI"]) - float(d["CS_CU"])
-                            results.append(DailyHistoryRecord(date=dt, kwh=kwh))
+                            current_results.append(DailyHistoryRecord(date=dt, kwh=kwh))
                     except Exception: continue
-                if results: break # Found data, stop trying endpoints
+                
+                if current_results:
+                    results = current_results
+                    # If we found meaningful data (non-zero), stop. Otherwise try next endpoint.
+                    if any(r.kwh > 0 for r in results):
+                        break
         
         return results
 

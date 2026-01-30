@@ -38,10 +38,6 @@
 
 ## 📸 Hình ảnh
 
-<p align="center">
-  <img src="images/banner.png" alt="EVN Monitor Banner" width="100%">
-</p>
-
 ### 🖥️ SENSOR Entities:
 <p align="center">
   <img src="images/sensor_demo.png" alt="SENSOR Entities" width="100%">
