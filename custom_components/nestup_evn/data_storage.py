@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 from typing import Dict, List, Tuple, Optional
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 from .utils import calc_ecost, parse_evnhanoi_money
 from .const import (
     DOMAIN, 
@@ -48,8 +49,12 @@ class EVNDataStorage:
             history_start_date or DEFAULT_HISTORY_START_DATE
         )
 
+        self._meta = {
+            "last_monthly_sync": None
+        }
+
         # Non-blocking initialization
-        self.data: Dict = {"daily": [], "monthly": []}
+        self.data: Dict = {"daily": [], "monthly": [], "_meta": self._meta}
         self._backfill_done = False
 
     # ------------------------------------------------------------------
@@ -78,6 +83,11 @@ class EVNDataStorage:
                     
                 data.setdefault("daily", [])
                 data.setdefault("monthly", [])
+                data.setdefault("_meta", {})
+
+                self._meta = data["_meta"]
+                self._meta.setdefault("last_monthly_sync", None)                
+                
                 _LOGGER.debug("Storage: Successfully loaded %d daily and %d monthly records for %s", len(data["daily"]), len(data["monthly"]), self.customer_id)
                 return data
         except Exception as e:
@@ -329,6 +339,19 @@ class EVNDataStorage:
     # ------------------------------------------------------------------
     # MONTHLY SYNC
     # ------------------------------------------------------------------
+    def should_sync_monthly(self, interval_seconds: int = 10800) -> bool:
+        """Check if monthly history should be synced (default: 3h)."""
+        last = self._meta.get("last_monthly_sync")
+        if not last:
+            return True
+
+        try:
+            last_dt = datetime.fromisoformat(last)
+        except Exception:
+            return True
+
+        return (datetime.now() - last_dt).total_seconds() >= interval_seconds
+    
     async def async_sync_monthly_history(self, api, area, username, password):
         instance = api.get_region_instance(area, self.customer_id)
         if not instance: return
@@ -356,6 +379,7 @@ class EVNDataStorage:
             self.data["monthly"].sort(
                 key=lambda x: (x.get("Năm"), x.get("Tháng"))
             )
+            self._meta["last_monthly_sync"] = dt_util.utcnow().isoformat()
             await self.async_save()
 
     # ------------------------------------------------------------------

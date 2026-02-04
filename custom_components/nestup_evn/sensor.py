@@ -93,6 +93,21 @@ class EVNDevice:
             history_start_date=history_start_date,
         )
 
+    async def async_sync_history(self):
+        """Sync daily & monthly history."""
+
+        # Daily: realtime from sensor
+        await self._storage.async_update_from_sensor_data(self._data)
+
+        # Monthly: throttle via storage (3h)
+        if self._storage.should_sync_monthly():
+            await self._storage.async_sync_monthly_history(
+                self._api,
+                self._area_name,
+                self._username,
+                self._password,
+            )
+
     async def async_setup(self):
         """Async setup of the device."""
         try:
@@ -120,7 +135,7 @@ class EVNDevice:
             raise UpdateFailed(f"EVN update failed: {self._customer_id}")
 
         self._data = data
-        await self._storage.async_update_from_sensor_data(data)
+        await self.async_sync_history()
         
         # Only sync monthly bills once a day to save resources
         now = datetime.now()
@@ -156,7 +171,7 @@ class EVNDevice:
         )
         self._coordinator = coordinator
         await coordinator.async_config_entry_first_refresh()
-
+        await self.async_sync_history()
     @property
     def coordinator(self):
         return self._coordinator
