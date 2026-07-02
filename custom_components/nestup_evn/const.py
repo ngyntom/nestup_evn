@@ -2,7 +2,7 @@
 
 from datetime import timedelta
 
-DEFAULT_SCAN_INTERVAL = timedelta(hours=3)
+DEFAULT_SCAN_INTERVAL = timedelta(hours=1)
 
 DOMAIN = "nestup_evn"
 
