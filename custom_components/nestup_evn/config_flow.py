@@ -116,7 +116,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Optional(
                     CONF_MONTHLY_START,
-                    default=14,
+                    default=1,
                 ): vol.All(int, vol.Range(min=1, max=28)),
                 vol.Optional(
                     CONF_HISTORY_START_DATE,
